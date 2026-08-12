@@ -166,13 +166,14 @@
     initWaveTrail();
   }
 
-  // ── Surfboard Ocean Wave Trail ──────────────────────────────────
+  // ── Surfboard Ocean Water Wake & Foam Trail ──────────────────────
   function initWaveTrail() {
     const canvas = $('cursorCanvas');
     if (!canvas || !hasFineCursor || prefersReducedMotion) return;
 
     const ctx = canvas.getContext('2d');
     let particles = [];
+    let ripples = [];
 
     function resizeCanvas() {
       canvas.width = window.innerWidth;
@@ -181,39 +182,121 @@
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    function spawnParticles(x, y, isClick = false) {
-      const count = isClick ? 14 : 2;
-      for (let i = 0; i < count; i++) {
+    // Ocean Water Color Palette (Turquoise, Cyan, Seafoam White, Azure)
+    const WATER_COLORS = [
+      'rgba(255, 255, 255, ',   // White sea foam
+      'rgba(224, 242, 254, ',   // Light icy sea foam
+      'rgba(56, 189, 248, ',    // Bright ocean cyan
+      'rgba(45, 212, 191, ',    // Tropical turquoise
+      'rgba(14, 165, 233, '     // Deep azure water
+    ];
+
+    let prevMouseX = 0, prevMouseY = 0;
+
+    document.addEventListener('mousemove', (e) => {
+      const mx = e.clientX;
+      const my = e.clientY;
+      const dx = mx - prevMouseX;
+      const dy = my - prevMouseY;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 1.5) {
+        const moveAngle = Math.atan2(dy, dx);
+        const count = Math.min(Math.floor(dist / 3), 6) + 1;
+
+        for (let i = 0; i < count; i++) {
+          const spread = (Math.random() - 0.5) * 0.8;
+          const perpAngle = moveAngle + Math.PI + spread;
+          const speed = Math.random() * 1.5 + 0.5;
+
+          particles.push({
+            x: mx - Math.cos(moveAngle) * (i * 4) + (Math.random() - 0.5) * 6,
+            y: my - Math.sin(moveAngle) * (i * 4) + (Math.random() - 0.5) * 6,
+            vx: Math.cos(perpAngle) * speed,
+            vy: Math.sin(perpAngle) * speed,
+            radius: Math.random() * 3 + 2,
+            maxRadius: Math.random() * 6 + 4,
+            alpha: Math.random() * 0.4 + 0.6,
+            decay: Math.random() * 0.025 + 0.015,
+            color: WATER_COLORS[Math.floor(Math.random() * WATER_COLORS.length)]
+          });
+        }
+      }
+
+      prevMouseX = mx;
+      prevMouseY = my;
+    });
+
+    document.addEventListener('mousedown', (e) => {
+      // Ocean Splash Ripple on Click
+      ripples.push({
+        x: e.clientX,
+        y: e.clientY,
+        radius: 4,
+        maxRadius: 40 + Math.random() * 20,
+        alpha: 0.8,
+        lineWidth: 3
+      });
+
+      // Water spray droplets
+      for (let i = 0; i < 12; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = isClick ? (Math.random() * 4 + 2) : (Math.random() * 1.8 + 0.4);
+        const speed = Math.random() * 3.5 + 1.5;
         particles.push({
-          x: x + (Math.random() - 0.5) * 10,
-          y: y + (Math.random() - 0.5) * 10,
+          x: e.clientX,
+          y: e.clientY,
           vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 0.4,
-          radius: isClick ? (Math.random() * 7 + 4) : (Math.random() * 4 + 2),
-          alpha: 1,
-          decay: Math.random() * 0.035 + 0.015,
-          color: Math.random() > 0.4 
-            ? 'rgba(255, 222, 0, ' 
-            : (Math.random() > 0.5 ? 'rgba(255, 0, 123, ' : 'rgba(56, 189, 248, ')
+          vy: Math.sin(angle) * speed,
+          radius: Math.random() * 4 + 2,
+          maxRadius: Math.random() * 8 + 4,
+          alpha: 0.9,
+          decay: Math.random() * 0.03 + 0.02,
+          color: WATER_COLORS[Math.floor(Math.random() * WATER_COLORS.length)]
         });
       }
-    }
-
-    document.addEventListener('mousemove', (e) => spawnParticles(e.clientX, e.clientY));
-    document.addEventListener('mousedown', (e) => spawnParticles(e.clientX, e.clientY, true));
+    });
 
     function drawWaveTrail() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Draw Ocean Water Ripples (expanding splash rings)
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        const r = ripples[i];
+        r.radius += (r.maxRadius - r.radius) * 0.1;
+        r.alpha -= 0.025;
+
+        if (r.alpha <= 0 || r.radius >= r.maxRadius - 1) {
+          ripples.splice(i, 1);
+          continue;
+        }
+
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(56, 189, 248, ${r.alpha})`;
+        ctx.lineWidth = r.lineWidth * r.alpha;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.radius * 0.6, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${r.alpha * 0.6})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // 2. Draw Ocean Water Foam Particles
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
-        p.radius *= 0.95;
+        p.vx *= 0.94;
+        p.vy *= 0.94;
+
+        if (p.radius < p.maxRadius) {
+          p.radius += 0.15;
+        }
         p.alpha -= p.decay;
 
-        if (p.alpha <= 0 || p.radius < 0.4) {
+        if (p.alpha <= 0) {
           particles.splice(i, 1);
           continue;
         }
@@ -221,8 +304,8 @@
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fillStyle = p.color + p.alpha + ')';
-        ctx.shadowColor = p.color + '0.8)';
-        ctx.shadowBlur = 6;
+        ctx.shadowColor = 'rgba(56, 189, 248, 0.4)';
+        ctx.shadowBlur = 4;
         ctx.fill();
       }
       requestAnimationFrame(drawWaveTrail);
