@@ -477,22 +477,24 @@
         zone.classList.add('has-photo');
         if (text) text.textContent = 'DATA ATTACHED';
         
-        // Reset crop state cleanly
+        // Reset crop state cleanly to auto-cover circle 100% centered
         const maskSize = 240;
+        cropState.imageWidth = img.width;
+        cropState.imageHeight = img.height;
         cropState.fitScale = Math.max(maskSize / img.width, maskSize / img.height);
-        cropState.scale = 1;
+        cropState.scale = 1.0;
         
-        const dispW = img.width * cropState.fitScale;
-        const dispH = img.height * cropState.fitScale;
-        cropState.dx = (maskSize - dispW) / 2;
-        cropState.dy = (maskSize - dispH) / 2;
+        const baseW = img.width * cropState.fitScale;
+        const baseH = img.height * cropState.fitScale;
+        cropState.dx = (maskSize - baseW) / 2;
+        cropState.dy = (maskSize - baseH) / 2;
         cropState.isDragging = false;
 
         if (els.zoomSlider) {
-          els.zoomSlider.min = 0.5;
-          els.zoomSlider.max = 4;
+          els.zoomSlider.min = 1.0;
+          els.zoomSlider.max = 3.0;
           els.zoomSlider.step = 0.01;
-          els.zoomSlider.value = 1;
+          els.zoomSlider.value = 1.0;
         }
 
         updateCropTransform();
@@ -828,10 +830,20 @@
 
   function drawCirclePhoto(ctx, img, cx, cy, r) {
     if (img && img.complete && img.naturalWidth > 0) {
-      const ir = img.width / img.height;
-      let sx, sy, sw, sh;
-      if (ir > 1) { sh = img.height; sw = sh; sx = (img.width - sw) / 2; sy = 0; }
-      else { sw = img.width; sh = sw; sx = 0; sy = (img.height - sh) / 2; }
+      const maskSize = 240;
+      const fitScale = cropState.fitScale || Math.max(maskSize / img.width, maskSize / img.height);
+      const effScale = Math.max(0.1, (cropState.scale || 1) * fitScale);
+
+      let sw = maskSize / effScale;
+      let sh = maskSize / effScale;
+      let sx = -(cropState.dx || 0) / effScale;
+      let sy = -(cropState.dy || 0) / effScale;
+
+      sw = Math.min(img.width, Math.max(1, sw));
+      sh = Math.min(img.height, Math.max(1, sh));
+      sx = Math.max(0, Math.min(img.width - sw, sx));
+      sy = Math.max(0, Math.min(img.height - sh, sy));
+
       ctx.drawImage(img, sx, sy, sw, sh, cx - r, cy - r, r * 2, r * 2);
     } else {
       ctx.fillStyle = '#063725';
@@ -1091,36 +1103,38 @@
     ctx.fillText('2:47 PM STUDIO', W / 2, H - 45);
   }
 
-  // ══════════════════════════════════════════════════════════════
-  //  GENERATE, DOWNLOAD, SHARE
-  // ══════════════════════════════════════════════════════════════
+  async function renderCard(ctx, canvas) {
+    const W = canvas.width;
+    const H = canvas.height;
+    const name = els.nameInput.value.trim() || 'Alex Rivera';
+    const stack = els.stackInput.value.trim() || 'Fullstack Engineer';
+    const handle = els.phoneInput ? els.phoneInput.value.trim() : '';
+
+    if (state.format === 'pfp') {
+      await renderPFP(ctx, W, H, name);
+    } else if (state.mode === 'team') {
+      await renderTeamFrame(ctx, W, H, name, stack, state.builderClass);
+    } else {
+      // Official Hacker House Goa Builder Pass Template
+      await renderBuilderID(ctx, W, H, name, stack, state.builderClass, handle);
+    }
+  }
 
   async function generateCard() {
-    const name = els.nameInput.value.trim();
-    const stack = els.stackInput.value.trim();
+    const name = els.nameInput.value.trim() || 'BUILDER';
+    const stack = els.stackInput.value.trim() || 'DEVELOPER';
 
-    if (!name || name.length < 2) {
-      showToast('Please enter your name (at least 2 characters).', 'error');
-      els.nameInput.focus();
-      return;
-    }
-
-    if (!stack || stack.length < 2) {
-      showToast('Please enter your stack or role.', 'error');
-      els.stackInput.focus();
-      return;
-    }
-
-    els.btnGenerateText.textContent = 'PROCESSING...';
+    els.btnGenerateText.textContent = 'FORGING PASS...';
 
     try {
+      els.previewCanvas.width = 571;
+      els.previewCanvas.height = 1024;
       await renderCard(previewCtx, els.previewCanvas);
 
-      els.resultCanvas.width = els.previewCanvas.width;
-      els.resultCanvas.height = els.previewCanvas.height;
+      els.resultCanvas.width = 1142;
+      els.resultCanvas.height = 2048;
       await renderCard(resultCtx, els.resultCanvas);
 
-      // Forge strike animation
       if (els.resultWrapper && !prefersReducedMotion) {
         els.resultWrapper.classList.remove('forge-strike', 'forge-glow');
         void els.resultWrapper.offsetWidth;
@@ -1129,10 +1143,11 @@
       }
 
       showCardScreen('result');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       showToast('Your builder pass has been forged! 🔥', 'success');
     } catch (err) {
       console.error('Render error:', err);
-      showToast('Something went wrong. Please try again.', 'error');
+      showToast('Render error: ' + (err.message || err), 'error');
     } finally {
       els.btnGenerateText.textContent = 'MINT PASS';
     }
