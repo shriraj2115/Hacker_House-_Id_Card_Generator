@@ -273,27 +273,37 @@ a { color: inherit; text-decoration: none; }
 
 /* The vertically stretched "Instrument Serif" title — from site2 */
 .brand-title {
-  font-family: 'Instrument Serif', serif;
+  font-family: 'Playfair Display', serif;
   font-size: clamp(4.5rem, 11vw, 11rem);
   line-height: 0.8;
   color: var(--hh-yellow);
   font-weight: normal;
   text-transform: uppercase;
-  transform: scaleY(1.3);
+  transform: scaleY(2.2);
+  letter-spacing: -2px;
   text-shadow: 0 4px 30px rgba(255, 222, 0, 0.15);
+  margin-bottom: 30px;
 }
 
 /* गोवा overlay — from site2/hhgoa.com */
 .goa-overlay {
   position: absolute;
-  top: 55%; left: 50%;
-  transform: translate(-50%, -50%) rotate(-5deg);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
   font-size: clamp(3rem, 7vw, 6.5rem);
   color: var(--hh-pink);
   font-weight: 900;
   -webkit-text-stroke: 2px var(--hh-yellow);
   font-family: sans-serif;
-  text-shadow: 4px 4px 0px var(--hh-yellow);
+  text-shadow: 
+    -4px -4px 0 var(--hh-yellow),
+     0   -4px 0 var(--hh-yellow),
+     4px -4px 0 var(--hh-yellow),
+     4px  0   0 var(--hh-yellow),
+     4px  4px 0 var(--hh-yellow),
+     0    4px 0 var(--hh-yellow),
+    -4px  4px 0 var(--hh-yellow),
+    -4px  0   0 var(--hh-yellow);
   z-index: 10;
   pointer-events: none;
 }
