@@ -71,7 +71,7 @@
   const $ = (id) => document.getElementById(id);
 
   const cardScreens = {
-    landing: $('screenLanding'),
+    hero: $('screenHero'),
     form: $('screenForm'),
     result: $('screenResult'),
     about: $('screenAbout'),
@@ -366,7 +366,9 @@
 
   function showCardScreen(name) {
     state.screen = name;
-    Object.values(cardScreens).forEach(s => s.classList.remove('active'));
+    Object.values(cardScreens).forEach(s => {
+      if (s) s.classList.remove('active');
+    });
     if (cardScreens[name]) {
       cardScreens[name].classList.add('active');
     }
@@ -814,10 +816,8 @@
     drawFittedText(ctx, name.toUpperCase(), nameX, nameY, maxTextW, `800 ${Math.floor(22 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
 
     // 4. Primary Stack Pill Box (x: 210..510, y: 418..492, exact center_y: 455)
-    
-      const stackY = 455 * scaleY;
-      drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `700 ${Math.floor(17 * scaleX)px "JetBrains Mono", sans-serif`, '#063725', 'left');
-    }
+    const stackY = 455 * scaleY;
+    drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `700 ${Math.floor(17 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
     
     // LET'S BUILD sticker
     ctx.save();
@@ -1160,7 +1160,40 @@
       if (!els.stackInput.value) els.stackInput.value = 'Fullstack Engineer';
       
       showToast('Sample data & photo loaded!', 'success');
-    }, 'image/png');    };
+    }, 'image/png');
+  }
+
+  // ── Crop Controls Init ────────────────────────────────────────
+  function initCropControls() {
+    const mask = document.querySelector('.crop-mask');
+    if (!mask || !els.zoomSlider) return;
+
+    els.zoomSlider.addEventListener('input', (e) => {
+      const oldScale = cropState.scale;
+      cropState.scale = parseFloat(e.target.value);
+      
+      const maskSize = 240;
+      cropState.dx = maskSize/2 - (maskSize/2 - cropState.dx) * (cropState.scale / oldScale);
+      cropState.dy = maskSize/2 - (maskSize/2 - cropState.dy) * (cropState.scale / oldScale);
+      
+      updateCropTransform();
+    });
+    
+    mask.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomStep = (parseFloat(els.zoomSlider.max) - parseFloat(els.zoomSlider.min)) / 100;
+      const newScale = e.deltaY < 0 ? cropState.scale + zoomStep : cropState.scale - zoomStep;
+      if (newScale >= parseFloat(els.zoomSlider.min) && newScale <= parseFloat(els.zoomSlider.max)) {
+        els.zoomSlider.value = newScale;
+        els.zoomSlider.dispatchEvent(new Event('input'));
+      }
+    }, { passive: false });
+
+    const startDrag = (x, y) => {
+      cropState.isDragging = true;
+      cropState.startX = x - cropState.dx;
+      cropState.startY = y - cropState.dy;
+    };
     
     const moveDrag = (x, y) => {
       if (!cropState.isDragging) return;
