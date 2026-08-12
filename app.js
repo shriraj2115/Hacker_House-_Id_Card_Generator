@@ -1116,7 +1116,12 @@
       els.uploadThumb1.src = dataUrl;
       els.uploadZone1.classList.add('has-photo');
       els.uploadText1.textContent = 'DATA ATTACHED';
-      showToast('Sample photo loaded!', 'success');
+
+      if (!els.nameInput.value) els.nameInput.value = 'Alex Rivera';
+      if (!els.stackInput.value) els.stackInput.value = 'Fullstack Engineer';
+      if (!els.handleInput.value) els.handleInput.value = '@alexr';
+
+      showToast('Sample data & photo loaded!', 'success');
     };
     img.src = dataUrl;
   }
