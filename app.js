@@ -389,10 +389,10 @@
       els.resultCanvas.width = 1080;
       els.resultCanvas.height = 1080;
     } else {
-      els.previewCanvas.width = 1080;
-      els.previewCanvas.height = 1500;
-      els.resultCanvas.width = 1080;
-      els.resultCanvas.height = 1500;
+      els.previewCanvas.width = 571;
+      els.previewCanvas.height = 1024;
+      els.resultCanvas.width = 1142;
+      els.resultCanvas.height = 2048;
     }
 
     if (format === 'team' && state.mode === 'solo') {
@@ -693,231 +693,137 @@
     ctx.fillText('#FrameInGoa', W / 2, H - 30);
   }
 
-  // ── Builder ID Renderer ───────────────────────────────────────
+  // Preload Card Template
+  const cardTemplateImg = new Image();
+  cardTemplateImg.src = 'card_template.png';
+
+  function drawCirclePhoto(ctx, img, cx, cy, r) {
+    if (img && img.complete && img.naturalWidth > 0) {
+      const ir = img.width / img.height;
+      let sx, sy, sw, sh;
+      if (ir > 1) { sh = img.height; sw = sh; sx = (img.width - sw) / 2; sy = 0; }
+      else { sw = img.width; sh = sw; sx = 0; sy = (img.height - sh) / 2; }
+      ctx.drawImage(img, sx, sy, sw, sh, cx - r, cy - r, r * 2, r * 2);
+    } else {
+      ctx.fillStyle = '#063725';
+      ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+      ctx.fillStyle = '#ffde00';
+      ctx.font = `${Math.floor(r * 0.9)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('👤', cx, cy);
+    }
+  }
+
+  function drawMultiCirclePhotos(ctx, photos, cx, cy, r) {
+    const validPhotos = photos.filter(p => p && p.complete && p.naturalWidth > 0);
+    if (validPhotos.length === 0) {
+      drawCirclePhoto(ctx, null, cx, cy, r);
+      return;
+    }
+    const n = validPhotos.length;
+    const subRadius = r / (n === 2 ? 1.45 : 1.6);
+
+    ctx.fillStyle = '#063725';
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+
+    if (n === 2) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx - subRadius * 0.5, cy, subRadius, 0, Math.PI * 2);
+      ctx.clip();
+      drawCirclePhoto(ctx, validPhotos[0], cx - subRadius * 0.5, cy, subRadius);
+      ctx.restore();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx + subRadius * 0.5, cy, subRadius, 0, Math.PI * 2);
+      ctx.clip();
+      drawCirclePhoto(ctx, validPhotos[1], cx + subRadius * 0.5, cy, subRadius);
+      ctx.restore();
+    } else {
+      const angles = [-Math.PI / 2, Math.PI / 6, (5 * Math.PI) / 6];
+      const offset = subRadius * 0.65;
+      for (let i = 0; i < 3; i++) {
+        const px = cx + Math.cos(angles[i]) * offset;
+        const py = cy + Math.sin(angles[i]) * offset;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(px, py, subRadius * 0.8, 0, Math.PI * 2);
+        ctx.clip();
+        drawCirclePhoto(ctx, validPhotos[i], px, py, subRadius * 0.8);
+        ctx.restore();
+      }
+    }
+  }
+
+  // ── Builder ID Renderer using Official Template Image ────────────
   async function renderBuilderID(ctx, W, H, name, stack, builderClass, handle) {
-    const margin = 30;
+    // 1. Render template image background scaled to canvas size (571x1024 base)
+    if (cardTemplateImg && cardTemplateImg.complete && cardTemplateImg.naturalWidth > 0) {
+      ctx.drawImage(cardTemplateImg, 0, 0, W, H);
+    } else {
+      ctx.fillStyle = '#063725';
+      ctx.fillRect(0, 0, W, H);
+    }
 
-    // 1. Cream background
-    ctx.fillStyle = BRAND.cream;
-    ctx.fillRect(0, 0, W, H);
+    const scaleX = W / 571;
+    const scaleY = H / 1024;
 
-    // 2. Cover photo area with bg.png or green gradient
+    // 2. User Photo inside Circle Frame (center: 122.5, 409.5, radius: 86)
+    const cx = 122.5 * scaleX;
+    const cy = 409.5 * scaleY;
+    const r = 86 * scaleX;
+
     ctx.save();
     ctx.beginPath();
-    ctx.rect(margin, margin, W - margin * 2, 600);
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.clip();
 
-    const bgImg = new Image();
-    let bgLoaded = false;
-    try {
-      const loadBg = new Promise((resolve) => {
-        bgImg.onload = () => { bgLoaded = true; resolve(); };
-        bgImg.onerror = () => resolve();
-        bgImg.src = 'bg.png';
-      });
-      await Promise.race([loadBg, new Promise(r => setTimeout(r, 1500))]);
-    } catch(e) {}
-
-    if (bgLoaded && bgImg.complete && bgImg.naturalWidth > 0) {
-      try { ctx.drawImage(bgImg, margin, margin, W - margin * 2, 600); }
-      catch(e) { ctx.fillStyle = BRAND.green; ctx.fillRect(margin, margin, W - margin * 2, 600); }
-    } else {
-      ctx.fillStyle = BRAND.green;
-      ctx.fillRect(margin, margin, W - margin * 2, 600);
-    }
-
-    // Dark green overlays
-    ctx.fillStyle = 'rgba(10, 77, 44, 0.6)';
-    ctx.fillRect(margin, margin, W - margin * 2, 600);
-    ctx.fillStyle = 'rgba(5, 48, 24, 0.7)';
-    ctx.fillRect(margin, margin, W - margin * 2, 600);
-
-    // Retro grid
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let x = margin; x <= W - margin; x += 40) { ctx.moveTo(x, margin); ctx.lineTo(x, 630); }
-    for (let y = margin; y <= 630; y += 40) { ctx.moveTo(margin, y); ctx.lineTo(W - margin, y); }
-    ctx.stroke();
-    ctx.restore();
-
-    // 3. Border
-    ctx.strokeStyle = BRAND.green;
-    ctx.lineWidth = 18;
-    ctx.strokeRect(margin, margin, W - margin * 2, H - margin * 2);
-
-    // 4. Lanyard
-    ctx.fillStyle = BRAND.green;
-    ctx.beginPath();
-    ctx.roundRect(W / 2 - 140, margin, 280, 90, [0, 0, 20, 20]);
-    ctx.fill();
-    ctx.fillStyle = BRAND.cream;
-    ctx.beginPath();
-    ctx.arc(W / 2, margin + 45, 18, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 5. Studio text
-    ctx.textAlign = 'left';
-    ctx.fillStyle = BRAND.yellowDim;
-    ctx.font = '900 20px "JetBrains Mono"';
-    ctx.fillText('2:47 PM STUDIO', 60, margin + 60);
-
-    // 6. Build in Goa seal
-    ctx.strokeStyle = BRAND.yellowDim;
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(900, 160, 65, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(900, 160, 55, 0, Math.PI * 2); ctx.stroke();
-    ctx.textAlign = 'center';
-    ctx.fillStyle = BRAND.yellowDim;
-    ctx.font = 'bold 18px "JetBrains Mono"';
-    ctx.fillText('BUILD IN GOA', 900, 155);
-    ctx.font = '36px sans-serif';
-    ctx.fillText('🌴', 900, 195);
-
-    // 7. HACKER HOUSE stretched
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#fff';
-    ctx.save();
-    ctx.scale(1, 1.35);
-    ctx.font = 'normal 90px "Instrument Serif"';
-    ctx.fillText('HACKER HOUSE', W / 2, 260 / 1.35);
-    ctx.restore();
-
-    // 8. गोवा
-    ctx.save();
-    ctx.translate(W / 2, 200);
-    ctx.rotate(-5 * Math.PI / 180);
-    ctx.font = '900 75px sans-serif';
-    ctx.shadowColor = BRAND.yellowDim;
-    ctx.shadowOffsetX = 3; ctx.shadowOffsetY = 3;
-    ctx.fillStyle = BRAND.pinkRose;
-    ctx.fillText('गोवा', 0, 0);
-    ctx.shadowColor = 'transparent';
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = BRAND.yellowDim;
-    ctx.strokeText('गोवा', 0, 0);
-    ctx.restore();
-
-    // 9. Avatars
-    const avatarY = 560;
     if (state.teamSize === 1) {
-      drawAvatar(ctx, state.photoImages[0], W / 2, avatarY, 240);
-    } else if (state.teamSize === 2) {
-      drawAvatar(ctx, state.photoImages[0], 340, avatarY, 180);
-      drawAvatar(ctx, state.photoImages[1], 740, avatarY, 180);
+      drawCirclePhoto(ctx, state.photoImages[0], cx, cy, r);
     } else {
-      drawAvatar(ctx, state.photoImages[0], 280, avatarY, 135);
-      drawAvatar(ctx, state.photoImages[1], W / 2, avatarY, 135);
-      drawAvatar(ctx, state.photoImages[2], 800, avatarY, 135);
+      drawMultiCirclePhotos(ctx, state.photoImages.slice(0, state.teamSize), cx, cy, r);
     }
-
-    // 10. LET'S BUILD sticker
-    ctx.save();
-    ctx.translate(870, 480);
-    ctx.rotate(12 * Math.PI / 180);
-    ctx.fillStyle = BRAND.yellowDim;
-    ctx.fillRect(-65, -25, 130, 50);
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
-    ctx.strokeRect(-65, -25, 130, 50);
-    ctx.fillStyle = '#000';
-    ctx.font = '800 17px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText("LET'S BUILD!", 0, 6);
     ctx.restore();
 
-    // 11. Name plate
-    const npW = 620;
-    ctx.fillStyle = BRAND.green;
+    // Dark Green Border around Circle
+    ctx.strokeStyle = '#063725';
+    ctx.lineWidth = 5 * scaleX;
     ctx.beginPath();
-    ctx.roundRect(W / 2 - npW / 2, 900, npW, 75, 18);
-    ctx.fill();
-    ctx.strokeStyle = BRAND.yellowDim;
-    ctx.lineWidth = 3;
-    ctx.strokeRect(W / 2 - npW / 2 + 10, 910, npW - 20, 55);
-    ctx.textAlign = 'center';
-    drawFittedText(ctx, name.toUpperCase(), W / 2, 948, npW - 40, '34px "Plus Jakarta Sans"', '#fff');
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
 
-    // Stack ribbon
-    ctx.fillStyle = BRAND.yellowDim;
-    ctx.fillRect(W / 2 - 250, 1005, 500, 38);
-    ctx.fillStyle = BRAND.pinkRose;
-    ctx.font = '800 20px "JetBrains Mono"';
-    ctx.fillText(`⚡ ${stack.substring(0, 25).toUpperCase()} ⚡`, W / 2, 1032);
+    // 3. Name Pill Box (x: 200..508, y: 347..409, center_y: 378)
+    const nameX = 220 * scaleX;
+    const nameY = 378 * scaleY;
+    const maxTextW = 275 * scaleX;
 
-    // Handle
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    drawFittedText(ctx, name.toUpperCase(), nameX, nameY, maxTextW, `${Math.floor(22 * scaleX)}px "Plus Jakarta Sans"`, '#063725');
+
+    // 4. Primary Stack Pill Box (x: 200..508, y: 415..496, center_y: 455)
+    const stackY = handle ? 446 * scaleY : 455 * scaleY;
+    drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `${Math.floor(16 * scaleX)}px "JetBrains Mono"`, '#063725');
+
     if (handle) {
-      ctx.fillStyle = BRAND.greenDeep;
-      ctx.font = '700 18px "JetBrains Mono"';
-      ctx.fillText(handle.startsWith('@') ? handle : '@' + handle, W / 2, 1070);
+      const handleY = 468 * scaleY;
+      const formattedHandle = handle.startsWith('@') ? handle : '@' + handle;
+      drawFittedText(ctx, formattedHandle, nameX, handleY, maxTextW, `${Math.floor(14 * scaleX)}px "JetBrains Mono"`, '#e11d48');
     }
 
-    const footerY = handle ? 1100 : 1080;
+    // 5. QR Code Placeholder Box (x: 244, y: 798, w: 83, h: 83)
+    const qrX = 244 * scaleX;
+    const qrY = 798 * scaleY;
+    const qrSize = 83 * scaleX;
 
-    // 12. Three-column footer
-    // Col 1: Builder Class + QR
-    ctx.fillStyle = BRAND.pinkRose;
-    ctx.font = '800 14px "JetBrains Mono"';
-    ctx.fillText('✦ BUILDER CLASS ✦', 240, footerY + 20);
-    ctx.font = '800 22px "Plus Jakarta Sans"';
-    ctx.fillText(builderClass, 240, footerY + 55);
+    // Fill white box overlay
+    ctx.fillStyle = '#FAF7F0';
+    ctx.fillRect(qrX, qrY, qrSize, qrSize);
 
-    const qrUrl = `${window.location.origin}${window.location.pathname}?name=${encodeURIComponent(name)}&stack=${encodeURIComponent(stack)}&class=${encodeURIComponent(builderClass)}&size=${state.teamSize}`;
-
-    try {
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrUrl)}&color=0a4d2c&bgcolor=FDF6E3`;
-      const qrImg = new Image();
-      qrImg.crossOrigin = 'Anonymous';
-      const qrLoaded = await Promise.race([
-        new Promise(resolve => { qrImg.onload = () => resolve(true); qrImg.onerror = () => resolve(false); qrImg.src = qrApiUrl; }),
-        new Promise(resolve => setTimeout(() => resolve(false), 2000)),
-      ]);
-      if (qrLoaded && qrImg.complete && qrImg.naturalWidth > 0) {
-        ctx.drawImage(qrImg, 150, footerY + 80, 170, 170);
-      } else {
-        drawCanvasQR(ctx, 150, footerY + 80, 170, qrUrl);
-      }
-    } catch { drawCanvasQR(ctx, 150, footerY + 80, 170, qrUrl); }
-
-    // Col 2: Beach Bag
-    ctx.fillStyle = BRAND.pinkRose;
-    ctx.font = '800 14px "JetBrains Mono"';
-    ctx.fillText('✦ BEACH BAG ✦', W / 2, footerY + 20);
-    ctx.textAlign = 'left';
-    ctx.fillStyle = BRAND.greenDeep;
-    ctx.font = '800 18px "Plus Jakarta Sans"';
-    ctx.fillText('🥥  COCONUT', W / 2 - 60, footerY + 70);
-    ctx.fillText('💻  VS CODE', W / 2 - 60, footerY + 110);
-    ctx.fillText('🎧  LO-FI BEATS', W / 2 - 60, footerY + 150);
-
-    // Col 3: Shipping + Barcode
-    ctx.textAlign = 'center';
-    ctx.fillStyle = BRAND.pinkRose;
-    ctx.font = '800 14px "JetBrains Mono"';
-    ctx.fillText('✦ SHIPPING ✦', 840, footerY + 20);
-    ctx.fillStyle = BRAND.greenDeep;
-    ctx.font = '800 26px "Plus Jakarta Sans"';
-    ctx.fillText('BUILDING', 840, footerY + 60);
-    ctx.fillText('THE FUTURE', 840, footerY + 92);
-
-    ctx.strokeStyle = BRAND.greenDeep; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(700, footerY + 115); ctx.lineTo(980, footerY + 115); ctx.stroke();
-
-    ctx.fillStyle = BRAND.greenDeep;
-    ctx.font = '700 14px "JetBrains Mono"';
-    ctx.fillText('BUILDER ID', 840, footerY + 140);
-    const idNum = Math.abs(name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 7 % 9999);
-    ctx.fillText(`#HH-GOA-${String(idNum).padStart(4, '0')}`, 840, footerY + 162);
-
-    const barcodeWidths = [6, 3, 10, 4, 12, 4, 6, 8, 4, 2, 8, 14, 4];
-    let bx = 730;
-    ctx.fillStyle = BRAND.greenDeep;
-    for (const w of barcodeWidths) { ctx.fillRect(bx, footerY + 175, w, 45); bx += w + 4; }
-
-    ctx.textAlign = 'center';
-    ctx.fillStyle = BRAND.green;
-    ctx.font = '700 12px "JetBrains Mono"';
-    ctx.fillText('GOA, INDIA · 28–31 OCT 2026 · #FrameInGoa', W / 2, H - 50);
-    ctx.fillText('247 SEATS · 2:47 PM STUDIO', W / 2, H - 32);
+    // Draw QR code inside white box
+    drawCanvasQR(ctx, qrX + 2 * scaleX, qrY + 2 * scaleY, qrSize - 4 * scaleX, `${name}_${stack}_${builderClass}`);
   }
 
   // ── Team Frame Renderer ───────────────────────────────────────
