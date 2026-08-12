@@ -343,7 +343,8 @@ a { color: inherit; text-decoration: none; }
 
 .generator-wrapper {
   width: 100%;
-  max-width: 520px;
+  max-width: 800px;
+  transition: max-width 0.3s ease;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -538,6 +539,11 @@ a { color: inherit; text-decoration: none; }
   text-align: center;
   position: relative;
   transition: all 200ms ease;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .upload-zone:hover {
@@ -555,6 +561,20 @@ a { color: inherit; text-decoration: none; }
   opacity: 0; cursor: pointer;
 }
 
+.upload-zone.has-photo input[type="file"] {
+  display: none;
+}
+
+.upload-default {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-zone.has-photo .upload-default {
+  display: none;
+}
+
 .upload-icon {
   font-size: 1.5rem;
   margin-bottom: 6px;
@@ -568,48 +588,83 @@ a { color: inherit; text-decoration: none; }
   color: var(--text-muted);
 }
 
-.upload-zone.has-photo .upload-text {
-  color: var(--hh-yellow);
-}
-
-.upload-zone.has-photo .upload-icon { display: none; }
-
-.upload-thumb {
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  object-fit: cover;
-  margin: 0 auto 8px;
-  border: 2px solid var(--hh-yellow);
-  box-shadow: 0 0 12px rgba(255, 222, 0, 0.15);
+.crop-container {
   display: none;
 }
 
-.upload-zone.has-photo .upload-thumb { display: block; }
-
-.upload-actions {
+.upload-zone.has-photo .crop-container {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.crop-mask {
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  border: 2px dashed var(--hh-yellow);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 12px;
+  cursor: grab;
+  background: #000;
+  box-shadow: 0 0 15px rgba(255, 222, 0, 0.2);
+}
+
+.crop-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.crop-mask:active {
+  cursor: grabbing;
+}
+
+.upload-thumb {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none !important;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.crop-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
   gap: 8px;
 }
 
-.btn-action-sm {
-  flex: 1;
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-  background: rgba(0, 0, 0, 0.25);
-  color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65rem;
-  font-weight: 700;
-  transition: all 200ms;
+.zoom-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 180px;
 }
 
-.btn-action-sm:hover {
-  border-color: var(--hh-yellow);
+.zoom-icon {
   color: var(--hh-yellow);
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: bold;
 }
 
-/* ── Input Fields — from site2 ─────────────────────────────────── */
+.zoom-slider-container input[type="range"] {
+  flex-grow: 1;
+  accent-color: var(--hh-pink);
+}
+
+
+
+/* ── Input Fields ──────────────────────────────────────────────── */
 .input-field {
   display: flex;
   flex-direction: column;
@@ -674,12 +729,88 @@ a { color: inherit; text-decoration: none; }
 .input-feedback.valid { color: #22c55e; }
 .input-feedback.invalid { color: #ef4444; }
 
+/* ── Form Columns ──────────────────────────────────────────────── */
+.form-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+@media (min-width: 768px) {
+  .form-columns {
+    flex-direction: row;
+    gap: 32px;
+  }
+  .form-column {
+    flex: 1;
+    min-width: 0; /* prevents flex child from overflowing */
+  }
+}
+
+/* ── Goa Decor Badge ───────────────────────────────────────────── */
+.goa-decor-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(10, 77, 44, 0.15);
+  border: 1px solid rgba(255, 222, 0, 0.15);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.goa-decor-badge::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: linear-gradient(to bottom, var(--hh-yellow), var(--hh-pink));
+}
+
+.badge-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.badge-title {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--hh-yellow);
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 2px;
+}
+
+.badge-sub {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--hh-pink);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.badge-icon {
+  font-size: 1.8rem;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 10px rgba(255, 222, 0, 0.4));
+}
+
 /* ── Canvas Wrapper & Result ───────────────────────────────────── */
 .canvas-wrapper {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
   background: #fff;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
 .canvas-wrapper canvas {

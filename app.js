@@ -54,6 +54,15 @@
     builderClass: BUILDER_CLASSES[0],
   };
 
+  let cropState = {
+    scale: 1,
+    dx: 0,
+    dy: 0,
+    isDragging: false,
+    startX: 0,
+    startY: 0
+  };
+
   // ── Detection ─────────────────────────────────────────────────
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const hasFineCursor = window.matchMedia('(pointer: fine)').matches;
@@ -80,27 +89,21 @@
     formatToggle: $('formatToggle'),
     modeToggle: $('modeToggle'),
     uploadZone1: $('uploadZone1'),
-    uploadZone2: $('uploadZone2'),
-    uploadZone3: $('uploadZone3'),
+    uploadDefault: $('uploadDefault'),
+    cropContainer: $('cropContainer'),
+    btnChangePhoto: $('btnChangePhoto'),
+    zoomSlider: $('zoomSlider'),
     uploadThumb1: $('uploadThumb1'),
-    uploadThumb2: $('uploadThumb2'),
-    uploadThumb3: $('uploadThumb3'),
     uploadText1: $('uploadText1'),
-    uploadText2: $('uploadText2'),
-    uploadText3: $('uploadText3'),
     photoInput1: $('photoInput1'),
-    photoInput2: $('photoInput2'),
-    photoInput3: $('photoInput3'),
     cameraInput: $('cameraInput'),
     nameInput: $('nameInput'),
     stackInput: $('stackInput'),
-    handleInput: $('handleInput'),
     emailInput: $('emailInput'),
     phoneInput: $('phoneInput'),
     nameLabelText: $('nameLabelText'),
     nameFeedback: $('nameFeedback'),
     stackFeedback: $('stackFeedback'),
-    handleFeedback: $('handleFeedback'),
     emailFeedback: $('emailFeedback'),
     phoneFeedback: $('phoneFeedback'),
     btnGenerateText: $('btnGenerateText'),
@@ -424,6 +427,10 @@
   }
 
   // ── Photo Handling ────────────────────────────────────────────
+  function updateCropTransform() {
+    els.uploadThumb1.style.transform = `translate(${cropState.dx}px, ${cropState.dy}px) scale(${cropState.scale})`;
+  }
+
   async function handlePhotoUpload(file, index) {
     if (!file) return;
 
@@ -431,14 +438,14 @@
     const thumb = $('uploadThumb' + (index + 1));
     const text = $('uploadText' + (index + 1));
 
-    text.textContent = 'READING FILE...';
+    if (text) text.textContent = 'READING FILE...';
 
     if (file.name.toLowerCase().match(/\.hei[cf]$/i) || file.type === 'image/heic' || file.type === 'image/heif') {
       try {
         const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
         file = new File([convertedBlob], 'converted.jpg', { type: 'image/jpeg' });
       } catch (err) {
-        text.textContent = 'ERR_FORMAT';
+        if (text) text.textContent = 'ERR_FORMAT';
         showToast('Could not convert HEIC file.', 'error');
         return;
       }
@@ -446,7 +453,7 @@
 
     if (file.size > 15 * 1024 * 1024) {
       showToast('File too large. Use an image under 15 MB.', 'error');
-      text.textContent = '[ + ] ATTACH PHOTO 0' + (index + 1);
+      if (text) text.textContent = '[ + ] ATTACH PHOTO';
       return;
     }
 
@@ -458,11 +465,25 @@
         state.photoImages[index] = img;
         thumb.src = e.target.result;
         zone.classList.add('has-photo');
-        text.textContent = 'DATA ATTACHED';
+        if (text) text.textContent = 'DATA ATTACHED';
+        
+        // Reset crop state
+        const maskSize = 240;
+        const minScale = Math.max(maskSize / img.width, maskSize / img.height);
+        els.zoomSlider.min = minScale;
+        els.zoomSlider.max = minScale * 6;
+        els.zoomSlider.step = (minScale * 6 - minScale) / 200;
+        els.zoomSlider.value = minScale;
+        cropState.scale = minScale;
+        cropState.dx = (maskSize - img.width * minScale) / 2;
+        cropState.dy = (maskSize - img.height * minScale) / 2;
+        cropState.isDragging = false;
+        
+        updateCropTransform();
         showToast('Photo loaded!', 'success');
       };
       img.onerror = () => {
-        text.textContent = 'INVALID IMAGE';
+        if (text) text.textContent = 'INVALID IMAGE';
         showToast('Could not load this image.', 'error');
       };
       img.src = e.target.result;
@@ -500,16 +521,6 @@
     });
     els.stackInput.addEventListener('input', () => {
       validateField(els.stackInput, REGEX.stack, els.stackFeedback, 'Use 2–30 chars');
-    });
-    els.handleInput.addEventListener('input', () => {
-      const val = els.handleInput.value.trim();
-      if (!val) {
-        els.handleInput.classList.remove('valid', 'invalid');
-        els.handleFeedback.textContent = '';
-        els.handleFeedback.className = 'input-feedback';
-        return;
-      }
-      validateField(els.handleInput, REGEX.handle, els.handleFeedback, 'e.g. @yourname');
     });
   }
 
@@ -561,11 +572,11 @@
     ctx.clip();
 
     if (img && img.complete && img.naturalWidth > 0) {
-      const ar = 1;
-      const ir = img.width / img.height;
-      let sx, sy, sw, sh;
-      if (ir > ar) { sh = img.height; sw = sh * ar; sx = (img.width - sw) / 2; sy = 0; }
-      else { sw = img.width; sh = sw / ar; sx = 0; sy = (img.height - sh) / 2; }
+      const maskSize = 240;
+      const sx = -cropState.dx / cropState.scale;
+      const sy = -cropState.dy / cropState.scale;
+      const sw = maskSize / cropState.scale;
+      const sh = maskSize / cropState.scale;
       ctx.drawImage(img, sx, sy, sw, sh, cx - radius, cy - radius, radius * 2, radius * 2);
     } else {
       ctx.fillStyle = BRAND.green;
@@ -616,23 +627,22 @@
     const H = canvas.height;
     const name = els.nameInput.value.trim() || 'ANONYMOUS BUILDER';
     const stack = els.stackInput.value.trim() || 'WEB DEVELOPER';
-    const handle = els.handleInput.value.trim();
     const builderClass = generateBuilderClass(name, state.teamSize);
     state.builderClass = builderClass;
 
     ctx.clearRect(0, 0, W, H);
 
     if (state.format === 'pfp') {
-      await renderPFP(ctx, W, H, name, handle);
+      await renderPFP(ctx, W, H, name);
     } else if (state.format === 'team') {
       await renderTeamFrame(ctx, W, H, name, stack, builderClass);
     } else {
-      await renderBuilderID(ctx, W, H, name, stack, builderClass, handle);
+      await renderBuilderID(ctx, W, H, name, stack, builderClass);
     }
   }
 
   // ── PFP Frame Renderer ────────────────────────────────────────
-  async function renderPFP(ctx, W, H, name, handle) {
+  async function renderPFP(ctx, W, H, name) {
     ctx.fillStyle = BRAND.cream;
     ctx.fillRect(0, 0, W, H);
 
@@ -672,12 +682,6 @@
     ctx.font = '700 22px "Playfair Display"';
     ctx.fillText(name.toUpperCase(), W / 2, H - 80);
 
-    if (handle) {
-      ctx.fillStyle = BRAND.creamDim;
-      ctx.font = '500 18px "JetBrains Mono"';
-      ctx.fillText(handle.startsWith('@') ? handle : '@' + handle, W / 2, H - 52);
-    }
-
     ctx.textAlign = 'left';
     ctx.fillStyle = BRAND.yellow;
     ctx.font = '800 18px "JetBrains Mono"';
@@ -695,7 +699,7 @@
   }
 
   // ── Builder ID Renderer ───────────────────────────────────────
-  async function renderBuilderID(ctx, W, H, name, stack, builderClass, handle) {
+  async function renderBuilderID(ctx, W, H, name, stack, builderClass) {
     // Fill full canvas with green first
     ctx.fillStyle = BRAND.green;
     ctx.fillRect(0, 0, W, H);
@@ -1164,17 +1168,65 @@
     sCtx.textBaseline = 'middle';
     sCtx.fillText('👤', 300, 300);
 
-    const dataUrl = sampleCanvas.toDataURL('image/png');
-    const img = new Image();
-    img.onload = () => {
-      state.photos[0] = dataUrl;
-      state.photoImages[0] = img;
-      els.uploadThumb1.src = dataUrl;
-      els.uploadZone1.classList.add('has-photo');
-      els.uploadText1.textContent = 'DATA ATTACHED';
-      showToast('Sample photo loaded!', 'success');
+    // Convert to file and use upload handler so crop logic runs
+    sampleCanvas.toBlob((blob) => {
+      const file = new File([blob], 'sample.png', { type: 'image/png' });
+      handlePhotoUpload(file, 0);
+    }, 'image/png');
+  }
+
+  // ── Crop Controls Init ────────────────────────────────────────
+  function initCropControls() {
+    const mask = document.querySelector('.crop-mask');
+    if (!mask || !els.zoomSlider) return;
+
+    els.zoomSlider.addEventListener('input', (e) => {
+      const oldScale = cropState.scale;
+      cropState.scale = parseFloat(e.target.value);
+      
+      const maskSize = 240;
+      cropState.dx = maskSize/2 - (maskSize/2 - cropState.dx) * (cropState.scale / oldScale);
+      cropState.dy = maskSize/2 - (maskSize/2 - cropState.dy) * (cropState.scale / oldScale);
+      
+      updateCropTransform();
+    });
+    
+    mask.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomStep = 0.05;
+      const newScale = e.deltaY < 0 ? cropState.scale + zoomStep : cropState.scale - zoomStep;
+      if (newScale >= parseFloat(els.zoomSlider.min) && newScale <= parseFloat(els.zoomSlider.max)) {
+        els.zoomSlider.value = newScale;
+        els.zoomSlider.dispatchEvent(new Event('input'));
+      }
+    }, { passive: false });
+
+    const startDrag = (x, y) => {
+      cropState.isDragging = true;
+      cropState.startX = x - cropState.dx;
+      cropState.startY = y - cropState.dy;
     };
-    img.src = dataUrl;
+    
+    const moveDrag = (x, y) => {
+      if (!cropState.isDragging) return;
+      cropState.dx = x - cropState.startX;
+      cropState.dy = y - cropState.startY;
+      updateCropTransform();
+    };
+
+    mask.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
+    window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+    window.addEventListener('mouseup', () => cropState.isDragging = false);
+
+    mask.addEventListener('touchstart', (e) => startDrag(e.touches[0].clientX, e.touches[0].clientY), {passive: true});
+    window.addEventListener('touchmove', (e) => moveDrag(e.touches[0].clientX, e.touches[0].clientY), {passive: true});
+    window.addEventListener('touchend', () => cropState.isDragging = false);
+    
+    if (els.btnChangePhoto) {
+      els.btnChangePhoto.addEventListener('click', () => {
+        els.photoInput1.click();
+      });
+    }
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -1187,6 +1239,7 @@
     initMagneticButtons();
     initScrollProgress();
     initNavbarMorph();
+    initCropControls();
 
     // ── Card screen navigation ──
     const heroSection = $('screenHero');
@@ -1209,9 +1262,8 @@
     $('btnNewCard').addEventListener('click', () => {
       els.nameInput.value = '';
       els.stackInput.value = '';
-      els.handleInput.value = '';
-      [els.nameInput, els.stackInput, els.handleInput].forEach(el => el.classList.remove('valid', 'invalid'));
-      [els.nameFeedback, els.stackFeedback, els.handleFeedback].forEach(el => { el.textContent = ''; el.className = 'input-feedback'; });
+      [els.nameInput, els.stackInput].forEach(el => el.classList.remove('valid', 'invalid'));
+      [els.nameFeedback, els.stackFeedback].forEach(el => { el.textContent = ''; el.className = 'input-feedback'; });
       if (els.resultWrapper) els.resultWrapper.classList.remove('forge-strike', 'forge-glow');
       showCardScreen('form');
     });
@@ -1230,8 +1282,6 @@
 
     // ── Photo uploads ──
     els.photoInput1.addEventListener('change', (e) => handlePhotoUpload(e.target.files[0], 0));
-    els.photoInput2.addEventListener('change', (e) => handlePhotoUpload(e.target.files[0], 1));
-    els.photoInput3.addEventListener('change', (e) => handlePhotoUpload(e.target.files[0], 2));
 
     $('btnCamera').addEventListener('click', () => els.cameraInput.click());
     els.cameraInput.addEventListener('change', (e) => handlePhotoUpload(e.target.files[0], 0));

@@ -117,91 +117,79 @@
             <button class="btn-text" id="btnCancelForm" data-cursor-hover>[ BACK ]</button>
           </div>
 
-          <!-- Format Toggle -->
-          <div class="form-section-compact">
-            <span class="form-label-sm">FORMAT</span>
-            <div class="mode-toggle" id="formatToggle">
-              <label><input type="radio" name="format" value="card" checked /><span>BUILDER ID</span></label>
-              <label><input type="radio" name="format" value="pfp" /><span>PFP FRAME</span></label>
-              <label><input type="radio" name="format" value="team" /><span>TEAM</span></label>
+          <div class="form-columns">
+            <div class="form-column">
+
+              <div class="upload-zone" id="uploadZone1" data-cursor-hover>
+                <div class="upload-default" id="uploadDefault">
+                  <div class="upload-icon">📸</div>
+                  <div class="upload-text" id="uploadText1">[ + ] ATTACH PHOTO</div>
+                </div>
+
+                <div class="crop-container" id="cropContainer">
+                  <div class="crop-hint">DRAG TO PAN • SCROLL TO ZOOM</div>
+                  <div class="crop-mask">
+                    <img class="upload-thumb" id="uploadThumb1" alt="Photo" draggable="false" />
+                  </div>
+                  <div class="crop-controls">
+                    <button type="button" class="btn-text" id="btnChangePhoto" style="font-size: 0.65rem; color: var(--text-muted);">[ CHANGE ]</button>
+                    <div class="zoom-slider-container">
+                      <span class="zoom-icon">-</span>
+                      <input type="range" id="zoomSlider" min="0.1" max="5" step="0.01" value="1" />
+                      <span class="zoom-icon">+</span>
+                    </div>
+                  </div>
+                </div>
+
+                <input type="file" id="photoInput1" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.avif" />
+              </div>
+              <input type="file" accept="image/*" capture="user" id="cameraInput" style="display:none;" />
+            </div>
+
+            <div class="form-column">
+              <!-- Name -->
+              <div class="input-field">
+                <label for="nameInput"><span id="nameLabelText">IDENTIFIER / NAME</span></label>
+                <input type="text" id="nameInput" placeholder="e.g. Alex" maxlength="32" autocomplete="off" spellcheck="false" />
+                <div class="input-feedback" id="nameFeedback"></div>
+              </div>
+
+              <!-- Stack -->
+              <div class="input-field">
+                <label for="stackInput">PRIMARY STACK</label>
+                <input type="text" id="stackInput" placeholder="e.g. Frontend Developer" maxlength="30" autocomplete="off" spellcheck="false" />
+                <div class="input-feedback" id="stackFeedback"></div>
+              </div>
+
+
+              <!-- Email (hidden by default, optional) -->
+              <div class="input-field" style="display:none;">
+                <label for="emailInput">EMAIL <span class="optional">(optional)</span></label>
+                <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email" />
+                <div class="input-feedback" id="emailFeedback"></div>
+              </div>
+
+              <!-- Phone (hidden by default, optional) -->
+              <div class="input-field" style="display:none;">
+                <label for="phoneInput">PHONE <span class="optional">(optional)</span></label>
+                <input type="tel" id="phoneInput" placeholder="+91 98765 43210" maxlength="15" autocomplete="tel" />
+                <div class="input-feedback" id="phoneFeedback"></div>
+              </div>
+
+              <div class="goa-decor-badge">
+                <div class="badge-text">
+                  <span class="badge-title">GOA 2026</span>
+                  <span class="badge-sub">BUILDER REGISTRY</span>
+                </div>
+                <div class="badge-icon">🌴</div>
+              </div>
+
+              <button class="btn-cta" id="btnGenerate" data-cursor-hover data-magnetic>
+                <span id="btnGenerateText">MINT PASS</span>
+                <span class="arrow">→</span>
+              </button>
             </div>
           </div>
-
-          <!-- Mode Toggle -->
-          <div class="form-section-compact">
-            <span class="form-label-sm">TEAM SIZE</span>
-            <div class="mode-toggle" id="modeToggle">
-              <label><input type="radio" name="mode" value="solo" checked id="modeSolo" /><span>SOLO</span></label>
-              <label><input type="radio" name="mode" value="duo" id="modeDuo" /><span>DUO</span></label>
-              <label><input type="radio" name="mode" value="trio" id="modeTrio" /><span>TRIO</span></label>
-            </div>
-          </div>
-
-          <!-- Photo Upload -->
-          <div class="upload-zone" id="uploadZone1" data-cursor-hover>
-            <img class="upload-thumb" id="uploadThumb1" alt="Photo 1" />
-            <div class="upload-icon">📸</div>
-            <div class="upload-text" id="uploadText1">[ + ] ATTACH PHOTO 01</div>
-            <input type="file" id="photoInput1" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.avif" />
-          </div>
-          <div class="upload-zone" id="uploadZone2" style="display:none;" data-cursor-hover>
-            <img class="upload-thumb" id="uploadThumb2" alt="Photo 2" />
-            <div class="upload-icon">📸</div>
-            <div class="upload-text" id="uploadText2">[ + ] ATTACH PHOTO 02</div>
-            <input type="file" id="photoInput2" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.avif" />
-          </div>
-          <div class="upload-zone" id="uploadZone3" style="display:none;" data-cursor-hover>
-            <img class="upload-thumb" id="uploadThumb3" alt="Photo 3" />
-            <div class="upload-icon">📸</div>
-            <div class="upload-text" id="uploadText3">[ + ] ATTACH PHOTO 03</div>
-            <input type="file" id="photoInput3" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.avif" />
-          </div>
-
-          <div class="upload-actions">
-            <button class="btn-action-sm" id="btnCamera" data-cursor-hover>📷 SELFIE</button>
-            <button class="btn-action-sm" id="btnSample" data-cursor-hover>🎯 SAMPLE</button>
-          </div>
-          <input type="file" accept="image/*" capture="user" id="cameraInput" style="display:none;" />
-
-          <!-- Name -->
-          <div class="input-field">
-            <label for="nameInput"><span id="nameLabelText">IDENTIFIER / NAME</span></label>
-            <input type="text" id="nameInput" placeholder="e.g. Alex" maxlength="32" autocomplete="off" spellcheck="false" />
-            <div class="input-feedback" id="nameFeedback"></div>
-          </div>
-
-          <!-- Stack -->
-          <div class="input-field">
-            <label for="stackInput">PRIMARY STACK</label>
-            <input type="text" id="stackInput" placeholder="e.g. Frontend Developer" maxlength="30" autocomplete="off" spellcheck="false" />
-            <div class="input-feedback" id="stackFeedback"></div>
-          </div>
-
-          <!-- X Handle -->
-          <div class="input-field">
-            <label for="handleInput">X HANDLE <span class="optional">(optional)</span></label>
-            <input type="text" id="handleInput" placeholder="@yourhandle" maxlength="16" autocomplete="off" spellcheck="false" />
-            <div class="input-feedback" id="handleFeedback"></div>
-          </div>
-
-          <!-- Email (hidden by default, optional) -->
-          <div class="input-field" style="display:none;">
-            <label for="emailInput">EMAIL <span class="optional">(optional)</span></label>
-            <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email" />
-            <div class="input-feedback" id="emailFeedback"></div>
-          </div>
-
-          <!-- Phone (hidden by default, optional) -->
-          <div class="input-field" style="display:none;">
-            <label for="phoneInput">PHONE <span class="optional">(optional)</span></label>
-            <input type="tel" id="phoneInput" placeholder="+91 98765 43210" maxlength="15" autocomplete="tel" />
-            <div class="input-feedback" id="phoneFeedback"></div>
-          </div>
-
-          <button class="btn-cta" id="btnGenerate" data-cursor-hover data-magnetic>
-            <span id="btnGenerateText">MINT PASS</span>
-            <span class="arrow">→</span>
-          </button>
         </div>
 
         <!-- SCREEN: RESULT -->
