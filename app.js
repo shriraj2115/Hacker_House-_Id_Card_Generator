@@ -710,13 +710,22 @@
   const cardTemplateImg = new Image();
   cardTemplateImg.src = 'card_template.png';
 
+  function ensureImageLoaded(img, src) {
+    return new Promise((resolve) => {
+      if (img && img.complete && img.naturalWidth > 0) return resolve(true);
+      if (!img) return resolve(false);
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      if (src && !img.src) img.src = src;
+    });
+  }
+
   function drawCirclePhoto(ctx, img, cx, cy, r) {
     if (img && img.complete && img.naturalWidth > 0) {
-      const maskSize = 240;
-      const sx = -cropState.dx / cropState.scale;
-      const sy = -cropState.dy / cropState.scale;
-      const sw = maskSize / cropState.scale;
-      const sh = maskSize / cropState.scale;
+      const ir = img.width / img.height;
+      let sx, sy, sw, sh;
+      if (ir > 1) { sh = img.height; sw = sh; sx = (img.width - sw) / 2; sy = 0; }
+      else { sw = img.width; sh = sw; sx = 0; sy = (img.height - sh) / 2; }
       ctx.drawImage(img, sx, sy, sw, sh, cx - r, cy - r, r * 2, r * 2);
     } else {
       ctx.fillStyle = '#063725';
@@ -772,8 +781,15 @@
   }
 
   // ── Builder ID Renderer using Official Template Image ────────────
-  async function renderBuilderID(ctx, W, H, name, stack, builderClass) {
-    // 1. Render template image background scaled to canvas size (571x1024 base)
+  async function renderBuilderID(ctx, W, H, name, stack, builderClass, handle) {
+    // 1. Ensure template image and photo images are fully loaded before rendering
+    await ensureImageLoaded(cardTemplateImg, 'card_template.png');
+    for (let i = 0; i < state.teamSize; i++) {
+      if (state.photoImages[i]) {
+        await ensureImageLoaded(state.photoImages[i]);
+      }
+    }
+
     if (cardTemplateImg && cardTemplateImg.complete && cardTemplateImg.naturalWidth > 0) {
       ctx.drawImage(cardTemplateImg, 0, 0, W, H);
     } else {
@@ -1151,7 +1167,6 @@
     sCtx.textBaseline = 'middle';
     sCtx.fillText('👤', 300, 300);
 
-    // Convert to file and use upload handler so crop logic runs
     sampleCanvas.toBlob((blob) => {
       const file = new File([blob], 'sample.png', { type: 'image/png' });
       handlePhotoUpload(file, 0);
@@ -1227,7 +1242,6 @@
     initMagneticButtons();
     initScrollProgress();
     initNavbarMorph();
-    initCropControls();
 
     // ── Card screen navigation ──
     const heroSection = $('screenHero');
