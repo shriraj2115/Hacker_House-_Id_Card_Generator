@@ -708,6 +708,16 @@
   const cardTemplateImg = new Image();
   cardTemplateImg.src = 'card_template.png';
 
+  function ensureImageLoaded(img, src) {
+    return new Promise((resolve) => {
+      if (img && img.complete && img.naturalWidth > 0) return resolve(true);
+      if (!img) return resolve(false);
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      if (src && !img.src) img.src = src;
+    });
+  }
+
   function drawCirclePhoto(ctx, img, cx, cy, r) {
     if (img && img.complete && img.naturalWidth > 0) {
       const ir = img.width / img.height;
@@ -770,7 +780,14 @@
 
   // ── Builder ID Renderer using Official Template Image ────────────
   async function renderBuilderID(ctx, W, H, name, stack, builderClass, handle) {
-    // 1. Render template image background scaled to canvas size (571x1024 base)
+    // 1. Ensure template image and photo images are fully loaded before rendering
+    await ensureImageLoaded(cardTemplateImg, 'card_template.png');
+    for (let i = 0; i < state.teamSize; i++) {
+      if (state.photoImages[i]) {
+        await ensureImageLoaded(state.photoImages[i]);
+      }
+    }
+
     if (cardTemplateImg && cardTemplateImg.complete && cardTemplateImg.naturalWidth > 0) {
       ctx.drawImage(cardTemplateImg, 0, 0, W, H);
     } else {
