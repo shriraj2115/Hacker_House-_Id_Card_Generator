@@ -117,9 +117,11 @@
   //  INTERACTION LAYER
   // ══════════════════════════════════════════════════════════════
 
-  // ── Custom Cursor ─────────────────────────────────────────────
+  // ── Custom Surfboard Cursor & Wave Trail ────────────────────────
   let cursorX = 0, cursorY = 0;
   let cursorTargetX = 0, cursorTargetY = 0;
+  let lastX = 0, lastY = 0;
+  let surfboardAngle = 35;
 
   function initCursor() {
     if (!hasFineCursor || prefersReducedMotion) return;
@@ -132,18 +134,100 @@
     document.addEventListener('mousedown', () => els.cursor.classList.add('clicking'));
     document.addEventListener('mouseup', () => els.cursor.classList.remove('clicking'));
 
-    document.querySelectorAll('[data-cursor-hover]').forEach(el => {
+    document.querySelectorAll('[data-cursor-hover], button, a, input, select, .upload-zone').forEach(el => {
       el.addEventListener('mouseenter', () => els.cursor.classList.add('hovering'));
       el.addEventListener('mouseleave', () => els.cursor.classList.remove('hovering'));
     });
 
     function animateCursor() {
-      cursorX += (cursorTargetX - cursorX) * 0.15;
-      cursorY += (cursorTargetY - cursorY) * 0.15;
+      const dx = cursorTargetX - cursorX;
+      const dy = cursorTargetY - cursorY;
+      
+      cursorX += dx * 0.15;
+      cursorY += dy * 0.15;
       els.cursor.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0)`;
+
+      // Dynamically angle the surfboard based on velocity direction
+      const speed = Math.hypot(cursorX - lastX, cursorY - lastY);
+      if (speed > 1.5) {
+        const targetAngle = (Math.atan2(cursorY - lastY, cursorX - lastX) * 180 / Math.PI) + 90;
+        surfboardAngle += (targetAngle - surfboardAngle) * 0.2;
+        const surfboardEl = els.cursor.querySelector('.cursor-surfboard');
+        if (surfboardEl && !els.cursor.classList.contains('hovering')) {
+          surfboardEl.style.transform = `rotate(${surfboardAngle}deg)`;
+        }
+      }
+      lastX = cursorX;
+      lastY = cursorY;
+
       requestAnimationFrame(animateCursor);
     }
     animateCursor();
+    initWaveTrail();
+  }
+
+  // ── Surfboard Ocean Wave Trail ──────────────────────────────────
+  function initWaveTrail() {
+    const canvas = $('cursorCanvas');
+    if (!canvas || !hasFineCursor || prefersReducedMotion) return;
+
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    function spawnParticles(x, y, isClick = false) {
+      const count = isClick ? 14 : 2;
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = isClick ? (Math.random() * 4 + 2) : (Math.random() * 1.8 + 0.4);
+        particles.push({
+          x: x + (Math.random() - 0.5) * 10,
+          y: y + (Math.random() - 0.5) * 10,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 0.4,
+          radius: isClick ? (Math.random() * 7 + 4) : (Math.random() * 4 + 2),
+          alpha: 1,
+          decay: Math.random() * 0.035 + 0.015,
+          color: Math.random() > 0.4 
+            ? 'rgba(255, 222, 0, ' 
+            : (Math.random() > 0.5 ? 'rgba(255, 0, 123, ' : 'rgba(56, 189, 248, ')
+        });
+      }
+    }
+
+    document.addEventListener('mousemove', (e) => spawnParticles(e.clientX, e.clientY));
+    document.addEventListener('mousedown', (e) => spawnParticles(e.clientX, e.clientY, true));
+
+    function drawWaveTrail() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.radius *= 0.95;
+        p.alpha -= p.decay;
+
+        if (p.alpha <= 0 || p.radius < 0.4) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color + p.alpha + ')';
+        ctx.shadowColor = p.color + '0.8)';
+        ctx.shadowBlur = 6;
+        ctx.fill();
+      }
+      requestAnimationFrame(drawWaveTrail);
+    }
+    drawWaveTrail();
   }
 
   // ── Magnetic Buttons ──────────────────────────────────────────
