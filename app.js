@@ -524,16 +524,22 @@
   //  CANVAS RENDERING ENGINE (fully preserved from original)
   // ══════════════════════════════════════════════════════════════
 
-  function drawFittedText(ctx, text, x, y, maxWidth, font, color) {
+  function drawFittedText(ctx, text, x, y, maxWidth, fontStr, color, align = 'left') {
     ctx.fillStyle = color;
-    let fontSize = parseInt(font);
-    const fontFamily = font.replace(/^\d+px\s*/, '');
-    while (fontSize > 12) {
-      ctx.font = `${fontSize}px ${fontFamily}`;
-      if (ctx.measureText(text).width <= maxWidth) break;
+    ctx.textAlign = align;
+    ctx.textBaseline = 'middle';
+
+    const match = fontStr.match(/^(?:([a-zA-Z0-9]+)\s+)?(\d+)px\s+(.+)$/);
+    const weight = match && match[1] ? match[1] : '800';
+    let fontSize = match && match[2] ? parseInt(match[2]) : 20;
+    const fontFamily = match && match[3] ? match[3] : '"JetBrains Mono", monospace';
+
+    ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
+    while (fontSize > 9 && ctx.measureText(text).width > maxWidth) {
       fontSize -= 1;
+      ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
     }
-    ctx.font = `${fontSize}px ${fontFamily}`;
+    ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
     ctx.fillText(text, x, y);
   }
 
@@ -794,23 +800,24 @@
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.stroke();
 
-    // 3. Name Pill Box (x: 200..508, y: 347..409, center_y: 378)
-    const nameX = 220 * scaleX;
-    const nameY = 378 * scaleY;
-    const maxTextW = 275 * scaleX;
+    // 3. Name Pill Box (x: 210..510, y: 345..405, exact center_y: 375)
+    const nameX = 218 * scaleX;
+    const nameY = 375 * scaleY;
+    const maxTextW = 280 * scaleX;
 
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    drawFittedText(ctx, name.toUpperCase(), nameX, nameY, maxTextW, `${Math.floor(22 * scaleX)}px "Plus Jakarta Sans"`, '#063725');
+    drawFittedText(ctx, name.toUpperCase(), nameX, nameY, maxTextW, `800 ${Math.floor(22 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
 
-    // 4. Primary Stack Pill Box (x: 200..508, y: 415..496, center_y: 455)
-    const stackY = handle ? 446 * scaleY : 455 * scaleY;
-    drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `${Math.floor(16 * scaleX)}px "JetBrains Mono"`, '#063725');
-
+    // 4. Primary Stack Pill Box (x: 210..510, y: 418..492, exact center_y: 455)
     if (handle) {
+      const stackY = 442 * scaleY;
+      drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `700 ${Math.floor(15 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
+      
       const handleY = 468 * scaleY;
       const formattedHandle = handle.startsWith('@') ? handle : '@' + handle;
-      drawFittedText(ctx, formattedHandle, nameX, handleY, maxTextW, `${Math.floor(14 * scaleX)}px "JetBrains Mono"`, '#e11d48');
+      drawFittedText(ctx, formattedHandle, nameX, handleY, maxTextW, `700 ${Math.floor(13 * scaleX)}px "JetBrains Mono", sans-serif`, '#e11d48', 'left');
+    } else {
+      const stackY = 455 * scaleY;
+      drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `700 ${Math.floor(17 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
     }
 
     // 5. QR Code Placeholder Box (x: 244, y: 798, w: 83, h: 83)
@@ -997,19 +1004,41 @@
   }
 
   // ── Share to X ────────────────────────────────────────────────
-  function shareToX() {
+  async function shareToX() {
     const name = els.nameInput.value.trim() || 'Builder';
     const caption = state.teamSize > 1
-      ? `We just forged our HH Goa 2026 Team Builder Pass! 🌴🚀 #FrameInGoa @247pmstudio`
-      : `Just forged my HH Goa 2026 Builder Pass! 🌴🚀 #FrameInGoa @247pmstudio`;
+      ? `We just forged our HH Goa 2026 Team Builder Pass! 🌴🚀 #FrameInGoa @247pmstudio @hhgoa`
+      : `Just forged my HH Goa 2026 Builder Pass! 🌴🚀 #FrameInGoa @247pmstudio @hhgoa`;
+
+    const fileName = `HH-Goa-2026-${name.replace(/\s+/g, '-')}.png`;
+    const dataUrl = els.resultCanvas.toDataURL('image/png');
 
     const link = document.createElement('a');
-    link.download = `HH-Goa-2026-${name.replace(/\s+/g, '-')}.png`;
-    link.href = els.resultCanvas.toDataURL('image/png');
+    link.download = fileName;
+    link.href = dataUrl;
     link.click();
 
+    if (navigator.share && navigator.canShare) {
+      try {
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const file = new File([blob], fileName, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'Hacker House Goa 2026 Pass',
+            text: caption,
+            files: [file]
+          });
+          showToast('Shared successfully! 🚀', 'success');
+          return;
+        }
+      } catch (err) {
+        console.log('Web share fallback to Twitter intent:', err);
+      }
+    }
+
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}`, '_blank');
-    showToast('Image downloaded! Paste it into your X post. 🐦', 'success');
+    showToast('Image saved! Twitter opened to share your pass 🐦', 'success');
   }
 
   // ── Toast ─────────────────────────────────────────────────────
