@@ -467,20 +467,26 @@
         zone.classList.add('has-photo');
         if (text) text.textContent = 'DATA ATTACHED';
         
-        // Reset crop state
+        // Reset crop state cleanly
         const maskSize = 240;
-        const minScale = Math.max(maskSize / img.width, maskSize / img.height);
-        els.zoomSlider.min = minScale;
-        els.zoomSlider.max = minScale * 6;
-        els.zoomSlider.step = (minScale * 6 - minScale) / 200;
-        els.zoomSlider.value = minScale;
-        cropState.scale = minScale;
-        cropState.dx = (maskSize - img.width * minScale) / 2;
-        cropState.dy = (maskSize - img.height * minScale) / 2;
-        cropState.isDragging = false;
+        cropState.fitScale = Math.max(maskSize / img.width, maskSize / img.height);
+        cropState.scale = 1;
         
+        const dispW = img.width * cropState.fitScale;
+        const dispH = img.height * cropState.fitScale;
+        cropState.dx = (maskSize - dispW) / 2;
+        cropState.dy = (maskSize - dispH) / 2;
+        cropState.isDragging = false;
+
+        if (els.zoomSlider) {
+          els.zoomSlider.min = 0.5;
+          els.zoomSlider.max = 4;
+          els.zoomSlider.step = 0.01;
+          els.zoomSlider.value = 1;
+        }
+
         updateCropTransform();
-        showToast('Photo loaded!', 'success');
+        showToast('Photo loaded! Drag to pan or use zoom bar 🔍', 'success');
       };
       img.onerror = () => {
         if (text) text.textContent = 'INVALID IMAGE';
@@ -512,6 +518,98 @@
       feedbackEl.textContent = invalidMsg || 'Invalid format';
       feedbackEl.className = 'input-feedback invalid';
       return false;
+    }
+  }
+
+  // ── Photo Cropper Transforms & Interaction ─────────────────────
+  function updateCropTransform() {
+    const thumb = els.uploadThumb1;
+    if (!thumb) return;
+    const effScale = cropState.scale || 1;
+    thumb.style.transform = `translate3d(${cropState.dx}px, ${cropState.dy}px, 0) scale(${effScale})`;
+    thumb.style.transformOrigin = '0 0';
+  }
+
+  function setZoomScale(newScale) {
+    const maskSize = 240;
+    const minS = parseFloat(els.zoomSlider?.min || '0.5');
+    const maxS = parseFloat(els.zoomSlider?.max || '4');
+    const targetScale = Math.max(minS, Math.min(maxS, newScale));
+
+    const oldScale = cropState.scale || 1;
+    cropState.scale = targetScale;
+
+    // Focal zoom centered on the crop mask
+    const centerMaskX = maskSize / 2;
+    const centerMaskY = maskSize / 2;
+    const ratio = targetScale / oldScale;
+
+    cropState.dx = centerMaskX - (centerMaskX - cropState.dx) * ratio;
+    cropState.dy = centerMaskY - (centerMaskY - cropState.dy) * ratio;
+
+    if (els.zoomSlider) els.zoomSlider.value = targetScale;
+    updateCropTransform();
+  }
+
+  function initCropInteractions() {
+    const zoomSlider = els.zoomSlider;
+    const cropMask = document.querySelector('.crop-mask');
+
+    if (zoomSlider) {
+      zoomSlider.addEventListener('input', (e) => {
+        setZoomScale(parseFloat(e.target.value));
+      });
+    }
+
+    if (cropMask) {
+      cropMask.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.08 : -0.08;
+        setZoomScale((cropState.scale || 1) + delta);
+      }, { passive: false });
+
+      cropMask.addEventListener('mousedown', (e) => {
+        cropState.isDragging = true;
+        cropState.startX = e.clientX - cropState.dx;
+        cropState.startY = e.clientY - cropState.dy;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!cropState.isDragging) return;
+        cropState.dx = e.clientX - cropState.startX;
+        cropState.dy = e.clientY - cropState.startY;
+        updateCropTransform();
+      });
+
+      window.addEventListener('mouseup', () => {
+        cropState.isDragging = false;
+      });
+
+      cropMask.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          cropState.isDragging = true;
+          cropState.startX = e.touches[0].clientX - cropState.dx;
+          cropState.startY = e.touches[0].clientY - cropState.dy;
+        }
+      }, { passive: true });
+
+      window.addEventListener('touchmove', (e) => {
+        if (!cropState.isDragging || e.touches.length !== 1) return;
+        cropState.dx = e.touches[0].clientX - cropState.startX;
+        cropState.dy = e.touches[0].clientY - cropState.startY;
+        updateCropTransform();
+      }, { passive: true });
+
+      window.addEventListener('touchend', () => {
+        cropState.isDragging = false;
+      });
+    }
+
+    if (els.btnChangePhoto) {
+      els.btnChangePhoto.addEventListener('click', (e) => {
+        e.stopPropagation();
+        els.photoInput1.click();
+      });
     }
   }
 
@@ -1195,6 +1293,7 @@
     initMagneticButtons();
     initScrollProgress();
     initNavbarMorph();
+    initCropInteractions();
 
     // ── Card screen navigation ──
     const heroSection = $('screenHero');
