@@ -209,7 +209,6 @@ a { color: inherit; text-decoration: none; }
   color: var(--hh-yellow);
 }
 
-/* The signature yellow dashed button from site2 */
 .nav-btn-yellow {
   background: var(--hh-yellow);
   border: 3px dashed var(--hh-pink-rose);
@@ -217,9 +216,14 @@ a { color: inherit; text-decoration: none; }
   font-size: 0.85rem;
   padding: 10px 22px;
   box-shadow: 0 0 20px rgba(255, 222, 0, 0.35);
+  cursor: default;
+  transition: all 200ms var(--ease-out);
 }
 
-.nav-btn-yellow:active { transform: scale(0.95); }
+.nav-btn-yellow:hover {
+  box-shadow: 0 0 30px rgba(255, 222, 0, 0.6), 0 0 15px rgba(255, 0, 123, 0.4);
+  transform: translateY(-1px);
+}
 
 /* ═══════════════════════════════════════════════════════════════
    HERO LANDING — Full-screen with footer-trees background

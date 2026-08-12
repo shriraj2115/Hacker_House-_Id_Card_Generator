@@ -1171,25 +1171,13 @@
       showCardScreen('form');
     });
 
-    // Team TOK DOI toggle
+    // Team badge element (non-clickable info tag)
     const navBtnTeam = $('navBtnTeam');
-    $('btnCloseAbout').addEventListener('click', () => {
-      showCardScreen('form');
-      navBtnTeam.innerText = 'TEAM VIRUS.EXE';
-    });
-
-    navBtnTeam.addEventListener('click', () => {
-      // Make sure generator section is visible
-      heroSection.style.display = 'none';
-      generatorSection.style.display = 'flex';
-      if (cardScreens.about.classList.contains('active')) {
+    if ($('btnCloseAbout')) {
+      $('btnCloseAbout').addEventListener('click', () => {
         showCardScreen('form');
-        navBtnTeam.innerText = 'TEAM VIRUS.EXE';
-      } else {
-        showCardScreen('about');
-        navBtnTeam.innerText = 'RETURN HOME';
-      }
-    });
+      });
+    }
 
     // ── Format/Mode toggles (radio-based) ──
     setupRadioToggle(els.formatToggle, onFormatChange);
