@@ -41,11 +41,18 @@
 </head>
 <body>
 
-<!-- ═══ Custom Cursor ═══ -->
+<!-- ═══ Custom Surfboard Cursor ═══ -->
 <div class="cursor" id="cursor">
-  <div class="cursor-dot"></div>
+  <div class="cursor-surfboard">
+    <svg width="34" height="34" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M16 2C21 8 23 18 20 28C19 30 17 31 16 31C15 31 13 30 12 28C9 18 11 8 16 2Z" fill="#ffde00" stroke="#063725" stroke-width="1.8"/>
+      <path d="M16 2C18.5 6 20 12 19.5 17L12.5 17C12 12 13.5 6 16 2Z" fill="#ff007b"/>
+      <line x1="16" y1="2" x2="16" y2="31" stroke="#063725" stroke-width="1.2" stroke-dasharray="2 2"/>
+    </svg>
+  </div>
   <div class="cursor-ring"></div>
 </div>
+<canvas class="cursor-trail-canvas" id="cursorCanvas"></canvas>
 
 <!-- ═══ Scroll Progress ═══ -->
 <div class="scroll-progress" id="scrollProgress"></div>
@@ -67,193 +74,187 @@
     </div>
     <div class="nav-links">
       <a href="https://hhgoa.com" target="_blank" rel="noreferrer" class="nav-btn nav-btn-outline" data-cursor-hover>HHGOA.COM</a>
-      <button class="nav-btn nav-btn-yellow" id="navBtnTeam" data-cursor-hover>TEAM TOK DOI</button>
+      <button class="nav-btn nav-btn-yellow" id="navBtnTeam" data-cursor-hover>TEAM VIRUS.EXE</button>
     </div>
   </nav>
 
-  <!-- ═══════════ SCREEN 1: LANDING (Split Layout) ═══════════ -->
-  <section class="landing" id="screenHero">
-    <main class="landing-layout">
-
-      <!-- ── Left Side: Branding ── -->
-      <div class="branding-side">
-        <div class="brand-top-row animate-in">
-          <div class="brand-studio">2:41<span>PM</span><br>STUDIO</div>
-        </div>
-
-        <div class="brand-center animate-in animate-in-delay-1">
-          <img src="favicon.png" class="heading-sticker" alt="Coconut Sticker" />
-          <h1 class="brand-title">HACKER<br>HOUSE</h1>
-          <div class="goa-overlay">गोवा</div>
-        </div>
-
-        <div class="brand-bottom-row animate-in animate-in-delay-2">
-          <span>GOA, INDIA • 28 - 31 OCT 2026</span>
-          <span>2:47 PM STUDIO</span>
-        </div>
+  <!-- ═══════════ SCREEN 1: HERO LANDING ═══════════ -->
+  <section class="hero-landing" id="screenHero">
+    <div class="hero-content">
+      <div class="brand-center animate-in">
+        <h1 class="brand-title">HACKER<br>HOUSE</h1>
+        <div class="goa-overlay">गोवा</div>
       </div>
-
-      <!-- ── Right Side: Interactive App Card ── -->
-      <div class="app-side">
-        <div class="app-card" data-cursor-hover>
-
-          <!-- SCREEN: LANDING -->
-          <div id="screenLanding" class="card-screen active">
-            <h2 class="landing-headline">Builder Registry</h2>
-            <p class="landing-sub">Access the ID generator to mint your personalized pass for the 2026 Residency.</p>
-            <button class="btn-cta" id="btnStartGenerator" data-cursor-hover data-magnetic>
-              <span>INITIALIZE GENERATOR</span>
-              <span class="arrow">→</span>
-            </button>
-          </div>
-
-          <!-- SCREEN: FORM -->
-          <div id="screenForm" class="card-screen">
-            <div class="card-header">
-              <h3 class="card-title">Configure ID</h3>
-              <button class="btn-text" id="btnCancelForm" data-cursor-hover>[ CANCEL ]</button>
-            </div>
-
-            <!-- Format Toggle -->
-            <div class="form-section-compact">
-              <span class="form-label-sm">FORMAT</span>
-              <div class="mode-toggle" id="formatToggle">
-                <label><input type="radio" name="format" value="card" checked /><span>BUILDER ID</span></label>
-                <label><input type="radio" name="format" value="pfp" /><span>PFP FRAME</span></label>
-                <label><input type="radio" name="format" value="team" /><span>TEAM</span></label>
-              </div>
-            </div>
-
-            <!-- Mode Toggle -->
-            <div class="form-section-compact">
-              <span class="form-label-sm">TEAM SIZE</span>
-              <div class="mode-toggle" id="modeToggle">
-                <label><input type="radio" name="mode" value="solo" checked id="modeSolo" /><span>SOLO</span></label>
-                <label><input type="radio" name="mode" value="duo" id="modeDuo" /><span>DUO</span></label>
-                <label><input type="radio" name="mode" value="trio" id="modeTrio" /><span>TRIO</span></label>
-              </div>
-            </div>
-
-            <!-- Photo Upload -->
-            <div class="upload-zone" id="uploadZone1" data-cursor-hover>
-              <img class="upload-thumb" id="uploadThumb1" alt="Photo 1" />
-              <div class="upload-icon">📸</div>
-              <div class="upload-text" id="uploadText1">[ + ] ATTACH PHOTO 01</div>
-              <input type="file" id="photoInput1" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.avif" />
-            </div>
-            <div class="upload-zone" id="uploadZone2" style="display:none;" data-cursor-hover>
-              <img class="upload-thumb" id="uploadThumb2" alt="Photo 2" />
-              <div class="upload-icon">📸</div>
-              <div class="upload-text" id="uploadText2">[ + ] ATTACH PHOTO 02</div>
-              <input type="file" id="photoInput2" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.avif" />
-            </div>
-            <div class="upload-zone" id="uploadZone3" style="display:none;" data-cursor-hover>
-              <img class="upload-thumb" id="uploadThumb3" alt="Photo 3" />
-              <div class="upload-icon">📸</div>
-              <div class="upload-text" id="uploadText3">[ + ] ATTACH PHOTO 03</div>
-              <input type="file" id="photoInput3" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.avif" />
-            </div>
-
-            <div class="upload-actions">
-              <button class="btn-action-sm" id="btnCamera" data-cursor-hover>📷 SELFIE</button>
-              <button class="btn-action-sm" id="btnSample" data-cursor-hover>🎯 SAMPLE</button>
-            </div>
-            <input type="file" accept="image/*" capture="user" id="cameraInput" style="display:none;" />
-
-            <!-- Name -->
-            <div class="input-field">
-              <label for="nameInput"><span id="nameLabelText">IDENTIFIER / NAME</span></label>
-              <input type="text" id="nameInput" placeholder="e.g. Alex" maxlength="32" autocomplete="off" spellcheck="false" />
-              <div class="input-feedback" id="nameFeedback"></div>
-            </div>
-
-            <!-- Stack -->
-            <div class="input-field">
-              <label for="stackInput">PRIMARY STACK</label>
-              <input type="text" id="stackInput" placeholder="e.g. Frontend Developer" maxlength="30" autocomplete="off" spellcheck="false" />
-              <div class="input-feedback" id="stackFeedback"></div>
-            </div>
-
-            <!-- X Handle -->
-            <div class="input-field">
-              <label for="handleInput">X HANDLE <span class="optional">(optional)</span></label>
-              <input type="text" id="handleInput" placeholder="@yourhandle" maxlength="16" autocomplete="off" spellcheck="false" />
-              <div class="input-feedback" id="handleFeedback"></div>
-            </div>
-
-            <!-- Email (hidden by default, optional) -->
-            <div class="input-field" style="display:none;">
-              <label for="emailInput">EMAIL <span class="optional">(optional)</span></label>
-              <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email" />
-              <div class="input-feedback" id="emailFeedback"></div>
-            </div>
-
-            <!-- Phone (hidden by default, optional) -->
-            <div class="input-field" style="display:none;">
-              <label for="phoneInput">PHONE <span class="optional">(optional)</span></label>
-              <input type="tel" id="phoneInput" placeholder="+91 98765 43210" maxlength="15" autocomplete="tel" />
-              <div class="input-feedback" id="phoneFeedback"></div>
-            </div>
-
-            <button class="btn-cta" id="btnGenerate" data-cursor-hover data-magnetic>
-              <span id="btnGenerateText">MINT PASS</span>
-              <span class="arrow">→</span>
-            </button>
-          </div>
-
-          <!-- SCREEN: RESULT -->
-          <div id="screenResult" class="card-screen">
-            <div class="card-header">
-              <h3 class="card-title">Resident ID</h3>
-              <button class="btn-text" id="btnNewCard" data-cursor-hover>[ NEW ]</button>
-            </div>
-
-            <div class="canvas-wrapper" id="resultWrapper">
-              <canvas id="resultCanvas" width="1080" height="1500"></canvas>
-            </div>
-
-            <div class="actions-grid">
-              <button class="btn-secondary" id="btnDownload" data-cursor-hover>SAVE .PNG</button>
-              <button class="btn-secondary btn-share" id="btnShareX" data-cursor-hover>POST TO X</button>
-            </div>
-          </div>
-
-          <!-- SCREEN: ABOUT TEAM -->
-          <div id="screenAbout" class="card-screen">
-            <div class="card-header">
-              <h3 class="card-title">Team TOK DOI</h3>
-              <button class="btn-text" id="btnCloseAbout" data-cursor-hover>[ CLOSE ]</button>
-            </div>
-
-            <div class="team-card">
-              <h4>Baps</h4>
-              <p>Frontend Developer</p>
-              <div class="team-links">
-                <a href="https://x.com/" target="_blank" class="t-link" data-cursor-hover>X (Twitter) →</a>
-              </div>
-            </div>
-          </div>
-
-          <!-- SCREEN: QR PROFILE -->
-          <div id="screenProfile" class="card-screen">
-            <div class="card-header">
-              <h3 class="card-title">Builder Profile</h3>
-              <button class="btn-text" onclick="window.location.href='/'">[ HOME ]</button>
-            </div>
-            <div class="team-card" style="border-color: var(--hh-yellow);">
-              <h4 id="qrName" style="font-size:2rem; color:var(--hh-yellow);">NAME</h4>
-              <p id="qrStack" style="font-size:1rem; color:var(--text-main); font-weight:700;">STACK</p>
-              <div style="background:rgba(0,0,0,0.5); padding:12px; border-radius:6px; border:1px dashed var(--border-color); margin-top:12px;">
-                <p id="qrClass" style="color:var(--hh-pink); font-size:0.85rem;">CLASS</p>
-                <p id="qrSize" style="color:var(--text-muted); font-size:0.75rem;">TEAM SIZE</p>
-              </div>
-            </div>
-          </div>
-
-        </div>
+      <div class="brand-info animate-in animate-in-delay-1">
+        <span>GOA, INDIA • 28 – 31 OCT 2026</span>
+        <span>2:47 PM STUDIO</span>
       </div>
+      <button class="btn-generate-id animate-in animate-in-delay-2" id="btnStartGenerator" data-cursor-hover>
+        GENERATE ID
+      </button>
+    </div>
+  </section>
 
-    </main>
+  <!-- ═══════════ SCREEN 2: GENERATOR ═══════════ -->
+  <section class="generator-section" id="generatorSection" style="display:none;">
+    <div class="generator-wrapper">
+      <div class="app-card" data-cursor-hover>
+
+        <!-- SCREEN: LANDING -->
+        <div id="screenLanding" class="card-screen active" style="display:none;">
+          <h2 class="landing-headline">Builder Registry</h2>
+          <p class="landing-sub">Access the ID generator to mint your personalized pass for the 2026 Residency.</p>
+          <button class="btn-cta" id="btnStartGeneratorAlt" data-cursor-hover data-magnetic>
+            <span>INITIALIZE GENERATOR</span>
+            <span class="arrow">→</span>
+          </button>
+        </div>
+
+        <!-- SCREEN: FORM -->
+        <div id="screenForm" class="card-screen active">
+          <div class="card-header">
+            <h3 class="card-title">Configure ID</h3>
+            <button class="btn-text" id="btnCancelForm" data-cursor-hover>[ BACK ]</button>
+          </div>
+
+          <!-- Format Toggle -->
+          <div class="form-section-compact">
+            <span class="form-label-sm">FORMAT</span>
+            <div class="mode-toggle" id="formatToggle">
+              <label><input type="radio" name="format" value="card" checked /><span>BUILDER ID</span></label>
+              <label><input type="radio" name="format" value="pfp" /><span>PFP FRAME</span></label>
+              <label><input type="radio" name="format" value="team" /><span>TEAM</span></label>
+            </div>
+          </div>
+
+          <!-- Mode Toggle -->
+          <div class="form-section-compact">
+            <span class="form-label-sm">TEAM SIZE</span>
+            <div class="mode-toggle" id="modeToggle">
+              <label><input type="radio" name="mode" value="solo" checked id="modeSolo" /><span>SOLO</span></label>
+              <label><input type="radio" name="mode" value="duo" id="modeDuo" /><span>DUO</span></label>
+              <label><input type="radio" name="mode" value="trio" id="modeTrio" /><span>TRIO</span></label>
+            </div>
+          </div>
+
+          <!-- Photo Upload -->
+          <div class="upload-zone" id="uploadZone1" data-cursor-hover>
+            <img class="upload-thumb" id="uploadThumb1" alt="Photo 1" />
+            <div class="upload-icon">📸</div>
+            <div class="upload-text" id="uploadText1">[ + ] ATTACH PHOTO 01</div>
+            <input type="file" id="photoInput1" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.avif" />
+          </div>
+          <div class="upload-zone" id="uploadZone2" style="display:none;" data-cursor-hover>
+            <img class="upload-thumb" id="uploadThumb2" alt="Photo 2" />
+            <div class="upload-icon">📸</div>
+            <div class="upload-text" id="uploadText2">[ + ] ATTACH PHOTO 02</div>
+            <input type="file" id="photoInput2" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.avif" />
+          </div>
+          <div class="upload-zone" id="uploadZone3" style="display:none;" data-cursor-hover>
+            <img class="upload-thumb" id="uploadThumb3" alt="Photo 3" />
+            <div class="upload-icon">📸</div>
+            <div class="upload-text" id="uploadText3">[ + ] ATTACH PHOTO 03</div>
+            <input type="file" id="photoInput3" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.avif" />
+          </div>
+
+          <div class="upload-actions">
+            <button class="btn-action-sm" id="btnCamera" data-cursor-hover>📷 SELFIE</button>
+            <button class="btn-action-sm" id="btnSample" data-cursor-hover>🎯 SAMPLE</button>
+          </div>
+          <input type="file" accept="image/*" capture="user" id="cameraInput" style="display:none;" />
+
+          <!-- Name -->
+          <div class="input-field">
+            <label for="nameInput"><span id="nameLabelText">IDENTIFIER / NAME</span></label>
+            <input type="text" id="nameInput" placeholder="e.g. Alex" maxlength="32" autocomplete="off" spellcheck="false" />
+            <div class="input-feedback" id="nameFeedback"></div>
+          </div>
+
+          <!-- Stack -->
+          <div class="input-field">
+            <label for="stackInput">PRIMARY STACK</label>
+            <input type="text" id="stackInput" placeholder="e.g. Frontend Developer" maxlength="30" autocomplete="off" spellcheck="false" />
+            <div class="input-feedback" id="stackFeedback"></div>
+          </div>
+
+          <!-- X Handle -->
+          <div class="input-field">
+            <label for="handleInput">X HANDLE <span class="optional">(optional)</span></label>
+            <input type="text" id="handleInput" placeholder="@yourhandle" maxlength="16" autocomplete="off" spellcheck="false" />
+            <div class="input-feedback" id="handleFeedback"></div>
+          </div>
+
+          <!-- Email (hidden by default, optional) -->
+          <div class="input-field" style="display:none;">
+            <label for="emailInput">EMAIL <span class="optional">(optional)</span></label>
+            <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email" />
+            <div class="input-feedback" id="emailFeedback"></div>
+          </div>
+
+          <!-- Phone (hidden by default, optional) -->
+          <div class="input-field" style="display:none;">
+            <label for="phoneInput">PHONE <span class="optional">(optional)</span></label>
+            <input type="tel" id="phoneInput" placeholder="+91 98765 43210" maxlength="15" autocomplete="tel" />
+            <div class="input-feedback" id="phoneFeedback"></div>
+          </div>
+
+          <button class="btn-cta" id="btnGenerate" data-cursor-hover data-magnetic>
+            <span id="btnGenerateText">MINT PASS</span>
+            <span class="arrow">→</span>
+          </button>
+        </div>
+
+        <!-- SCREEN: RESULT -->
+        <div id="screenResult" class="card-screen">
+          <div class="card-header">
+            <h3 class="card-title">Resident ID</h3>
+            <button class="btn-text" id="btnNewCard" data-cursor-hover>[ NEW ]</button>
+          </div>
+
+          <div class="canvas-wrapper" id="resultWrapper">
+            <canvas id="resultCanvas" width="1080" height="1500"></canvas>
+          </div>
+
+          <div class="actions-grid">
+            <button class="btn-secondary" id="btnDownload" data-cursor-hover>SAVE .PNG</button>
+            <button class="btn-secondary btn-share" id="btnShareX" data-cursor-hover>POST TO X</button>
+          </div>
+        </div>
+
+        <!-- SCREEN: ABOUT TEAM -->
+        <div id="screenAbout" class="card-screen">
+          <div class="card-header">
+            <h3 class="card-title">Team virus.exe</h3>
+            <button class="btn-text" id="btnCloseAbout" data-cursor-hover>[ CLOSE ]</button>
+          </div>
+
+          <div class="team-card">
+            <h4>Baps</h4>
+            <p>Frontend Developer</p>
+            <div class="team-links">
+              <a href="https://x.com/" target="_blank" class="t-link" data-cursor-hover>X (Twitter) →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCREEN: QR PROFILE -->
+        <div id="screenProfile" class="card-screen">
+          <div class="card-header">
+            <h3 class="card-title">Builder Profile</h3>
+            <button class="btn-text" onclick="window.location.href='/'">[ HOME ]</button>
+          </div>
+          <div class="team-card" style="border-color: var(--hh-yellow);">
+            <h4 id="qrName" style="font-size:2rem; color:var(--hh-yellow);">NAME</h4>
+            <p id="qrStack" style="font-size:1rem; color:var(--text-main); font-weight:700;">STACK</p>
+            <div style="background:rgba(0,0,0,0.5); padding:12px; border-radius:6px; border:1px dashed var(--border-color); margin-top:12px;">
+              <p id="qrClass" style="color:var(--hh-pink); font-size:0.85rem;">CLASS</p>
+              <p id="qrSize" style="color:var(--text-muted); font-size:0.75rem;">TEAM SIZE</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
   </section>
 
   <!-- ═══════════ Hidden preview canvas (for live preview rendering) ═══════════ -->

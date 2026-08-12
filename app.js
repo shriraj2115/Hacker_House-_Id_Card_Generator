@@ -118,9 +118,11 @@
   //  INTERACTION LAYER
   // ══════════════════════════════════════════════════════════════
 
-  // ── Custom Cursor ─────────────────────────────────────────────
+  // ── Custom Surfboard Cursor & Wave Trail ────────────────────────
   let cursorX = 0, cursorY = 0;
   let cursorTargetX = 0, cursorTargetY = 0;
+  let lastX = 0, lastY = 0;
+  let surfboardAngle = 35;
 
   function initCursor() {
     if (!hasFineCursor || prefersReducedMotion) return;
@@ -133,18 +135,183 @@
     document.addEventListener('mousedown', () => els.cursor.classList.add('clicking'));
     document.addEventListener('mouseup', () => els.cursor.classList.remove('clicking'));
 
-    document.querySelectorAll('[data-cursor-hover]').forEach(el => {
+    document.querySelectorAll('[data-cursor-hover], button, a, input, select, .upload-zone').forEach(el => {
       el.addEventListener('mouseenter', () => els.cursor.classList.add('hovering'));
       el.addEventListener('mouseleave', () => els.cursor.classList.remove('hovering'));
     });
 
     function animateCursor() {
-      cursorX += (cursorTargetX - cursorX) * 0.15;
-      cursorY += (cursorTargetY - cursorY) * 0.15;
+      const dx = cursorTargetX - cursorX;
+      const dy = cursorTargetY - cursorY;
+      
+      cursorX += dx * 0.15;
+      cursorY += dy * 0.15;
       els.cursor.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0)`;
+
+      // Dynamically angle the surfboard based on velocity direction
+      const speed = Math.hypot(cursorX - lastX, cursorY - lastY);
+      if (speed > 1.5) {
+        const targetAngle = (Math.atan2(cursorY - lastY, cursorX - lastX) * 180 / Math.PI) + 90;
+        surfboardAngle += (targetAngle - surfboardAngle) * 0.2;
+        const surfboardEl = els.cursor.querySelector('.cursor-surfboard');
+        if (surfboardEl && !els.cursor.classList.contains('hovering')) {
+          surfboardEl.style.transform = `rotate(${surfboardAngle}deg)`;
+        }
+      }
+      lastX = cursorX;
+      lastY = cursorY;
+
       requestAnimationFrame(animateCursor);
     }
     animateCursor();
+    initWaveTrail();
+  }
+
+  // ── Surfboard Ocean Water Wake & Foam Trail ──────────────────────
+  function initWaveTrail() {
+    const canvas = $('cursorCanvas');
+    if (!canvas || !hasFineCursor || prefersReducedMotion) return;
+
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let ripples = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Ocean Water Color Palette (Turquoise, Cyan, Seafoam White, Azure)
+    const WATER_COLORS = [
+      'rgba(255, 255, 255, ',   // White sea foam
+      'rgba(224, 242, 254, ',   // Light icy sea foam
+      'rgba(56, 189, 248, ',    // Bright ocean cyan
+      'rgba(45, 212, 191, ',    // Tropical turquoise
+      'rgba(14, 165, 233, '     // Deep azure water
+    ];
+
+    let prevMouseX = 0, prevMouseY = 0;
+
+    document.addEventListener('mousemove', (e) => {
+      const mx = e.clientX;
+      const my = e.clientY;
+      const dx = mx - prevMouseX;
+      const dy = my - prevMouseY;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 1.5) {
+        const moveAngle = Math.atan2(dy, dx);
+        const count = Math.min(Math.floor(dist / 3), 6) + 1;
+
+        for (let i = 0; i < count; i++) {
+          const spread = (Math.random() - 0.5) * 0.8;
+          const perpAngle = moveAngle + Math.PI + spread;
+          const speed = Math.random() * 1.5 + 0.5;
+
+          particles.push({
+            x: mx - Math.cos(moveAngle) * (i * 4) + (Math.random() - 0.5) * 6,
+            y: my - Math.sin(moveAngle) * (i * 4) + (Math.random() - 0.5) * 6,
+            vx: Math.cos(perpAngle) * speed,
+            vy: Math.sin(perpAngle) * speed,
+            radius: Math.random() * 3 + 2,
+            maxRadius: Math.random() * 6 + 4,
+            alpha: Math.random() * 0.4 + 0.6,
+            decay: Math.random() * 0.025 + 0.015,
+            color: WATER_COLORS[Math.floor(Math.random() * WATER_COLORS.length)]
+          });
+        }
+      }
+
+      prevMouseX = mx;
+      prevMouseY = my;
+    });
+
+    document.addEventListener('mousedown', (e) => {
+      // Ocean Splash Ripple on Click
+      ripples.push({
+        x: e.clientX,
+        y: e.clientY,
+        radius: 4,
+        maxRadius: 40 + Math.random() * 20,
+        alpha: 0.8,
+        lineWidth: 3
+      });
+
+      // Water spray droplets
+      for (let i = 0; i < 12; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 3.5 + 1.5;
+        particles.push({
+          x: e.clientX,
+          y: e.clientY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: Math.random() * 4 + 2,
+          maxRadius: Math.random() * 8 + 4,
+          alpha: 0.9,
+          decay: Math.random() * 0.03 + 0.02,
+          color: WATER_COLORS[Math.floor(Math.random() * WATER_COLORS.length)]
+        });
+      }
+    });
+
+    function drawWaveTrail() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Draw Ocean Water Ripples (expanding splash rings)
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        const r = ripples[i];
+        r.radius += (r.maxRadius - r.radius) * 0.1;
+        r.alpha -= 0.025;
+
+        if (r.alpha <= 0 || r.radius >= r.maxRadius - 1) {
+          ripples.splice(i, 1);
+          continue;
+        }
+
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(56, 189, 248, ${r.alpha})`;
+        ctx.lineWidth = r.lineWidth * r.alpha;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.radius * 0.6, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${r.alpha * 0.6})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // 2. Draw Ocean Water Foam Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.94;
+        p.vy *= 0.94;
+
+        if (p.radius < p.maxRadius) {
+          p.radius += 0.15;
+        }
+        p.alpha -= p.decay;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color + p.alpha + ')';
+        ctx.shadowColor = 'rgba(56, 189, 248, 0.4)';
+        ctx.shadowBlur = 4;
+        ctx.fill();
+      }
+      requestAnimationFrame(drawWaveTrail);
+    }
+    drawWaveTrail();
   }
 
   // ── Magnetic Buttons ──────────────────────────────────────────
@@ -1022,8 +1189,23 @@
     initNavbarMorph();
 
     // ── Card screen navigation ──
-    $('btnStartGenerator').addEventListener('click', () => showCardScreen('form'));
-    $('btnCancelForm').addEventListener('click', () => showCardScreen('landing'));
+    const heroSection = $('screenHero');
+    const generatorSection = $('generatorSection');
+
+    $('btnStartGenerator').addEventListener('click', () => {
+      heroSection.style.display = 'none';
+      generatorSection.style.display = 'flex';
+      showCardScreen('form');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    $('btnCancelForm').addEventListener('click', () => {
+      generatorSection.style.display = 'none';
+      heroSection.style.display = 'flex';
+      showCardScreen('form');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
     $('btnNewCard').addEventListener('click', () => {
       els.nameInput.value = '';
       els.stackInput.value = '';
@@ -1034,22 +1216,13 @@
       showCardScreen('form');
     });
 
-    // Team TOK DOI toggle
+    // Team badge element (non-clickable info tag)
     const navBtnTeam = $('navBtnTeam');
-    $('btnCloseAbout').addEventListener('click', () => {
-      showCardScreen('landing');
-      navBtnTeam.innerText = 'TEAM TOK DOI';
-    });
-
-    navBtnTeam.addEventListener('click', () => {
-      if (cardScreens.about.classList.contains('active')) {
-        showCardScreen('landing');
-        navBtnTeam.innerText = 'TEAM TOK DOI';
-      } else {
-        showCardScreen('about');
-        navBtnTeam.innerText = 'RETURN HOME';
-      }
-    });
+    if ($('btnCloseAbout')) {
+      $('btnCloseAbout').addEventListener('click', () => {
+        showCardScreen('form');
+      });
+    }
 
     // ── Format/Mode toggles (radio-based) ──
     setupRadioToggle(els.formatToggle, onFormatChange);
@@ -1081,8 +1254,12 @@
     checkURLParams();
 
     // ── Initial screen ──
-    if (!window.location.search.includes('name=')) {
-      showCardScreen('landing');
+    if (window.location.search.includes('name=')) {
+      heroSection.style.display = 'none';
+      generatorSection.style.display = 'flex';
+    } else {
+      heroSection.style.display = 'flex';
+      generatorSection.style.display = 'none';
     }
   }
 
