@@ -710,11 +710,10 @@
 
   function drawCirclePhoto(ctx, img, cx, cy, r) {
     if (img && img.complete && img.naturalWidth > 0) {
-      const maskSize = 240;
-      const sx = -cropState.dx / cropState.scale;
-      const sy = -cropState.dy / cropState.scale;
-      const sw = maskSize / cropState.scale;
-      const sh = maskSize / cropState.scale;
+      const ir = img.width / img.height;
+      let sx, sy, sw, sh;
+      if (ir > 1) { sh = img.height; sw = sh; sx = (img.width - sw) / 2; sy = 0; }
+      else { sw = img.width; sh = sw; sx = 0; sy = (img.height - sh) / 2; }
       ctx.drawImage(img, sx, sy, sw, sh, cx - r, cy - r, r * 2, r * 2);
     } else {
       ctx.fillStyle = '#063725';
@@ -770,7 +769,7 @@
   }
 
   // ── Builder ID Renderer using Official Template Image ────────────
-  async function renderBuilderID(ctx, W, H, name, stack, builderClass) {
+  async function renderBuilderID(ctx, W, H, name, stack, builderClass, handle) {
     // 1. Render template image background scaled to canvas size (571x1024 base)
     if (cardTemplateImg && cardTemplateImg.complete && cardTemplateImg.naturalWidth > 0) {
       ctx.drawImage(cardTemplateImg, 0, 0, W, H);
@@ -814,9 +813,16 @@
     drawFittedText(ctx, name.toUpperCase(), nameX, nameY, maxTextW, `800 ${Math.floor(22 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
 
     // 4. Primary Stack Pill Box (x: 210..510, y: 418..492, exact center_y: 455)
-    
+    if (handle) {
+      const stackY = 442 * scaleY;
+      drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `700 ${Math.floor(15 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
+      
+      const handleY = 468 * scaleY;
+      const formattedHandle = handle.startsWith('@') ? handle : '@' + handle;
+      drawFittedText(ctx, formattedHandle, nameX, handleY, maxTextW, `700 ${Math.floor(13 * scaleX)}px "JetBrains Mono", sans-serif`, '#e11d48', 'left');
+    } else {
       const stackY = 455 * scaleY;
-      drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `700 ${Math.floor(17 * scaleX)px "JetBrains Mono", sans-serif`, '#063725', 'left');
+      drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `700 ${Math.floor(17 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
     }
     
     // LET'S BUILD sticker
@@ -1151,7 +1157,6 @@
     sCtx.textBaseline = 'middle';
     sCtx.fillText('👤', 300, 300);
 
-    // Convert to file and use upload handler so crop logic runs
     sampleCanvas.toBlob((blob) => {
       const file = new File([blob], 'sample.png', { type: 'image/png' });
       handlePhotoUpload(file, 0);
@@ -1160,28 +1165,7 @@
       if (!els.stackInput.value) els.stackInput.value = 'Fullstack Engineer';
       
       showToast('Sample data & photo loaded!', 'success');
-    }, 'image/png');    };
-    
-    const moveDrag = (x, y) => {
-      if (!cropState.isDragging) return;
-      cropState.dx = x - cropState.startX;
-      cropState.dy = y - cropState.startY;
-      updateCropTransform();
-    };
-
-    mask.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
-    window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
-    window.addEventListener('mouseup', () => cropState.isDragging = false);
-
-    mask.addEventListener('touchstart', (e) => startDrag(e.touches[0].clientX, e.touches[0].clientY), {passive: true});
-    window.addEventListener('touchmove', (e) => moveDrag(e.touches[0].clientX, e.touches[0].clientY), {passive: true});
-    window.addEventListener('touchend', () => cropState.isDragging = false);
-    
-    if (els.btnChangePhoto) {
-      els.btnChangePhoto.addEventListener('click', () => {
-        els.photoInput1.click();
-      });
-    }
+    }, 'image/png');
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -1194,7 +1178,6 @@
     initMagneticButtons();
     initScrollProgress();
     initNavbarMorph();
-    initCropControls();
 
     // ── Card screen navigation ──
     const heroSection = $('screenHero');
