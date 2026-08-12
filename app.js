@@ -393,10 +393,10 @@
       els.resultCanvas.width = 1080;
       els.resultCanvas.height = 1080;
     } else {
-      els.previewCanvas.width = 1080;
-      els.previewCanvas.height = 1500;
-      els.resultCanvas.width = 1080;
-      els.resultCanvas.height = 1500;
+      els.previewCanvas.width = 571;
+      els.previewCanvas.height = 1024;
+      els.resultCanvas.width = 1142;
+      els.resultCanvas.height = 2048;
     }
 
     if (format === 'team' && state.mode === 'solo') {
@@ -536,16 +536,22 @@
   //  CANVAS RENDERING ENGINE (fully preserved from original)
   // ══════════════════════════════════════════════════════════════
 
-  function drawFittedText(ctx, text, x, y, maxWidth, font, color) {
+  function drawFittedText(ctx, text, x, y, maxWidth, fontStr, color, align = 'left') {
     ctx.fillStyle = color;
-    let fontSize = parseInt(font);
-    const fontFamily = font.replace(/^\d+px\s*/, '');
-    while (fontSize > 12) {
-      ctx.font = `${fontSize}px ${fontFamily}`;
-      if (ctx.measureText(text).width <= maxWidth) break;
+    ctx.textAlign = align;
+    ctx.textBaseline = 'middle';
+
+    const match = fontStr.match(/^(?:([a-zA-Z0-9]+)\s+)?(\d+)px\s+(.+)$/);
+    const weight = match && match[1] ? match[1] : '800';
+    let fontSize = match && match[2] ? parseInt(match[2]) : 20;
+    const fontFamily = match && match[3] ? match[3] : '"JetBrains Mono", monospace';
+
+    ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
+    while (fontSize > 9 && ctx.measureText(text).width > maxWidth) {
       fontSize -= 1;
+      ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
     }
-    ctx.font = `${fontSize}px ${fontFamily}`;
+    ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
     ctx.fillText(text, x, y);
   }
 
@@ -698,93 +704,119 @@
     ctx.fillText('#FrameInGoa', W / 2, H - 30);
   }
 
-  // ── Builder ID Renderer ───────────────────────────────────────
-  async function renderBuilderID(ctx, W, H, name, stack, builderClass) {
-    // Fill full canvas with green first
-    ctx.fillStyle = BRAND.green;
-    ctx.fillRect(0, 0, W, H);
-    
-    // Bottom section cream
-    const footerY = 1120;
-    ctx.fillStyle = BRAND.cream;
-    ctx.fillRect(0, footerY, W, H - footerY);
-    
-    // Border for the whole card
-    ctx.strokeStyle = BRAND.cream;
-    ctx.lineWidth = 20;
-    ctx.strokeRect(10, 10, W - 20, H - 20);
+  // Preload Card Template
+  const cardTemplateImg = new Image();
+  cardTemplateImg.src = 'card_template.png';
 
-    // 1. Lanyard hole punch at top
-    ctx.fillStyle = BRAND.greenDark;
-    ctx.beginPath();
-    ctx.roundRect(W / 2 - 120, -10, 240, 90, [0, 0, 20, 20]);
-    ctx.fill();
-    ctx.fillStyle = BRAND.cream;
-    ctx.beginPath();
-    ctx.arc(W / 2, 40, 25, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // "2:47 PM STUDIO" pill
-    ctx.fillStyle = BRAND.cream;
-    ctx.beginPath();
-    ctx.roundRect(40, 40, 200, 40, 20);
-    ctx.fill();
-    ctx.fillStyle = BRAND.greenDeep;
-    ctx.font = '800 16px "JetBrains Mono"';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('2:47 PM STUDIO', 140, 62);
-    ctx.textBaseline = 'alphabetic';
-    
-    // "BUILD IN GOA" seal
-    ctx.strokeStyle = BRAND.yellow;
-    ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.arc(950, 90, 60, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(950, 90, 50, 0, Math.PI * 2); ctx.stroke();
-    ctx.textAlign = 'center';
-    ctx.fillStyle = BRAND.yellow;
-    ctx.font = 'bold 16px "JetBrains Mono"';
-    ctx.fillText('BUILD IN GOA', 950, 85);
-    ctx.font = '36px sans-serif';
-    ctx.fillText('🌴', 950, 125);
-
-    // 2. HACKER HOUSE Header
-    ctx.textAlign = 'center';
-    ctx.fillStyle = BRAND.yellow;
-    ctx.save();
-    ctx.scale(1, 2.0); // Make it ultra-tall
-    ctx.font = 'normal 110px "Instrument Serif", "Cinzel", serif';
-    ctx.fillText('HACKER HOUSE', W / 2, 300 / 2.0);
-    ctx.restore();
-
-    // 3. गोवा overlapping
-    ctx.save();
-    ctx.translate(W / 2, 240);
-    ctx.rotate(-8 * Math.PI / 180);
-    ctx.font = '900 120px sans-serif';
-    
-    ctx.lineWidth = 16;
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = BRAND.pink;
-    ctx.strokeText('गोवा', 0, 0);
-    
-    ctx.fillStyle = BRAND.yellow;
-    ctx.fillText('गोवा', 0, 0);
-    ctx.restore();
-
-    // 4. Large Circle / Avatar
-    const avatarY = 660;
-    const avatarRadius = 310;
-    
-    if (state.teamSize === 1) {
-      drawAvatar(ctx, state.photoImages[0], W / 2, avatarY, avatarRadius);
-    } else if (state.teamSize === 2) {
-      drawAvatar(ctx, state.photoImages[0], 320, avatarY, 200);
-      drawAvatar(ctx, state.photoImages[1], 760, avatarY, 200);
+  function drawCirclePhoto(ctx, img, cx, cy, r) {
+    if (img && img.complete && img.naturalWidth > 0) {
+      const maskSize = 240;
+      const sx = -cropState.dx / cropState.scale;
+      const sy = -cropState.dy / cropState.scale;
+      const sw = maskSize / cropState.scale;
+      const sh = maskSize / cropState.scale;
+      ctx.drawImage(img, sx, sy, sw, sh, cx - r, cy - r, r * 2, r * 2);
     } else {
-      drawAvatar(ctx, state.photoImages[0], 280, avatarY, 150);
-      drawAvatar(ctx, state.photoImages[1], W / 2, avatarY, 150);
-      drawAvatar(ctx, state.photoImages[2], 800, avatarY, 150);
+      ctx.fillStyle = '#063725';
+      ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+      ctx.fillStyle = '#ffde00';
+      ctx.font = `${Math.floor(r * 0.9)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('👤', cx, cy);
+    }
+  }
+
+  function drawMultiCirclePhotos(ctx, photos, cx, cy, r) {
+    const validPhotos = photos.filter(p => p && p.complete && p.naturalWidth > 0);
+    if (validPhotos.length === 0) {
+      drawCirclePhoto(ctx, null, cx, cy, r);
+      return;
+    }
+    const n = validPhotos.length;
+    const subRadius = r / (n === 2 ? 1.45 : 1.6);
+
+    ctx.fillStyle = '#063725';
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+
+    if (n === 2) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx - subRadius * 0.5, cy, subRadius, 0, Math.PI * 2);
+      ctx.clip();
+      drawCirclePhoto(ctx, validPhotos[0], cx - subRadius * 0.5, cy, subRadius);
+      ctx.restore();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx + subRadius * 0.5, cy, subRadius, 0, Math.PI * 2);
+      ctx.clip();
+      drawCirclePhoto(ctx, validPhotos[1], cx + subRadius * 0.5, cy, subRadius);
+      ctx.restore();
+    } else {
+      const angles = [-Math.PI / 2, Math.PI / 6, (5 * Math.PI) / 6];
+      const offset = subRadius * 0.65;
+      for (let i = 0; i < 3; i++) {
+        const px = cx + Math.cos(angles[i]) * offset;
+        const py = cy + Math.sin(angles[i]) * offset;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(px, py, subRadius * 0.8, 0, Math.PI * 2);
+        ctx.clip();
+        drawCirclePhoto(ctx, validPhotos[i], px, py, subRadius * 0.8);
+        ctx.restore();
+      }
+    }
+  }
+
+  // ── Builder ID Renderer using Official Template Image ────────────
+  async function renderBuilderID(ctx, W, H, name, stack, builderClass) {
+    // 1. Render template image background scaled to canvas size (571x1024 base)
+    if (cardTemplateImg && cardTemplateImg.complete && cardTemplateImg.naturalWidth > 0) {
+      ctx.drawImage(cardTemplateImg, 0, 0, W, H);
+    } else {
+      ctx.fillStyle = '#063725';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    const scaleX = W / 571;
+    const scaleY = H / 1024;
+
+    // 2. User Photo inside Circle Frame (center: 122.5, 409.5, radius: 86)
+    const cx = 122.5 * scaleX;
+    const cy = 409.5 * scaleY;
+    const r = 86 * scaleX;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.clip();
+
+    if (state.teamSize === 1) {
+      drawCirclePhoto(ctx, state.photoImages[0], cx, cy, r);
+    } else {
+      drawMultiCirclePhotos(ctx, state.photoImages.slice(0, state.teamSize), cx, cy, r);
+    }
+    ctx.restore();
+
+    // Dark Green Border around Circle
+    ctx.strokeStyle = '#063725';
+    ctx.lineWidth = 5 * scaleX;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 3. Name Pill Box (x: 210..510, y: 345..405, exact center_y: 375)
+    const nameX = 218 * scaleX;
+    const nameY = 375 * scaleY;
+    const maxTextW = 280 * scaleX;
+
+    drawFittedText(ctx, name.toUpperCase(), nameX, nameY, maxTextW, `800 ${Math.floor(22 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
+
+    // 4. Primary Stack Pill Box (x: 210..510, y: 418..492, exact center_y: 455)
+    
+      const stackY = 455 * scaleY;
+      drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `700 ${Math.floor(17 * scaleX)px "JetBrains Mono", sans-serif`, '#063725', 'left');
     }
     
     // LET'S BUILD sticker
@@ -802,88 +834,17 @@
     ctx.fillText("LET'S BUILD!", 0, 0);
     ctx.restore();
 
-    // 5. Name Plate
-    const npW = 750;
-    const nameY = 1000;
-    ctx.fillStyle = BRAND.greenDeep;
-    ctx.beginPath();
-    ctx.roundRect(W / 2 - npW / 2, nameY, npW, 90, 20);
-    ctx.fill();
-    ctx.strokeStyle = BRAND.yellow;
-    ctx.lineWidth = 4;
-    ctx.strokeRect(W / 2 - npW / 2 + 8, nameY + 8, npW - 16, 74);
-    
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    drawFittedText(ctx, name.toUpperCase(), W / 2, nameY + 62, npW - 40, '42px "Plus Jakarta Sans"', '#fff');
+    // 5. QR Code Placeholder Box (x: 244, y: 798, w: 83, h: 83)
+    const qrX = 244 * scaleX;
+    const qrY = 798 * scaleY;
+    const qrSize = 83 * scaleX;
 
-    // Stack Ribbon
-    ctx.fillStyle = BRAND.yellow;
-    ctx.fillRect(W / 2 - 300, nameY + 110, 600, 44);
-    ctx.fillStyle = BRAND.pink;
-    ctx.font = '900 24px "JetBrains Mono"';
-    ctx.fillText(`⚡ ${stack.substring(0, 25).toUpperCase()} ⚡`, W / 2, nameY + 142);
+    // Fill white box overlay
+    ctx.fillStyle = '#FAF7F0';
+    ctx.fillRect(qrX, qrY, qrSize, qrSize);
 
-    // 6. Bottom Section (Three Columns)
-    ctx.fillStyle = BRAND.pink;
-    ctx.font = '800 16px "JetBrains Mono"';
-    ctx.fillText('✦ BUILDER CLASS ✦', 240, footerY + 50);
-    ctx.font = '900 24px "Plus Jakarta Sans"';
-    ctx.fillText(builderClass, 240, footerY + 85);
-
-    const qrUrl = `${window.location.origin}${window.location.pathname}?name=${encodeURIComponent(name)}`;
-    try {
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrUrl)}&color=0A3D2C&bgcolor=F6EEDD`;
-      const qrImg = new Image();
-      qrImg.crossOrigin = 'Anonymous';
-      const qrLoaded = await Promise.race([
-        new Promise(resolve => { qrImg.onload = () => resolve(true); qrImg.onerror = () => resolve(false); qrImg.src = qrApiUrl; }),
-        new Promise(resolve => setTimeout(() => resolve(false), 2000)),
-      ]);
-      if (qrLoaded && qrImg.complete && qrImg.naturalWidth > 0) {
-        ctx.drawImage(qrImg, 150, footerY + 115, 180, 180);
-      } else {
-        drawCanvasQR(ctx, 150, footerY + 115, 180, qrUrl);
-      }
-    } catch { drawCanvasQR(ctx, 150, footerY + 115, 180, qrUrl); }
-
-    ctx.fillStyle = BRAND.pink;
-    ctx.font = '800 16px "JetBrains Mono"';
-    ctx.fillText('✦ BEACH BAG ✦', W / 2, footerY + 50);
-    ctx.textAlign = 'left';
-    ctx.fillStyle = BRAND.greenDeep;
-    ctx.font = '800 22px "Plus Jakarta Sans"';
-    ctx.fillText('🥥  COCONUT', W / 2 - 80, footerY + 110);
-    ctx.fillText('💻  VS CODE', W / 2 - 80, footerY + 160);
-    ctx.fillText('🎧  LO-FI BEATS', W / 2 - 80, footerY + 210);
-
-    ctx.textAlign = 'center';
-    ctx.fillStyle = BRAND.pink;
-    ctx.font = '800 16px "JetBrains Mono"';
-    ctx.fillText('✦ CURRENTLY SHIPPING ✦', 840, footerY + 50);
-    ctx.fillStyle = BRAND.greenDeep;
-    ctx.font = '900 30px "Plus Jakarta Sans"';
-    ctx.fillText('BUILDING', 840, footerY + 95);
-    ctx.fillText('THE FUTURE', 840, footerY + 130);
-
-    ctx.strokeStyle = BRAND.greenDeep; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(680, footerY + 160); ctx.lineTo(1000, footerY + 160); ctx.stroke();
-
-    ctx.fillStyle = BRAND.greenDeep;
-    ctx.font = '800 16px "JetBrains Mono"';
-    ctx.fillText('BUILDER ID', 840, footerY + 195);
-    const idNum = Math.abs(name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 7 % 9999);
-    ctx.fillText(`#HH-GOA-${String(idNum).padStart(4, '0')}`, 840, footerY + 220);
-
-    const barcodeWidths = [8, 4, 12, 6, 16, 6, 8, 10, 6, 4, 12, 18, 6, 4, 8];
-    let bx = 710;
-    ctx.fillStyle = BRAND.greenDeep;
-    for (const w of barcodeWidths) { ctx.fillRect(bx, footerY + 240, w, 50); bx += w + 6; }
-
-    ctx.textAlign = 'center';
-    ctx.fillStyle = BRAND.greenDeep;
-    ctx.font = '800 14px "JetBrains Mono"';
-    ctx.fillText('GOA, INDIA · 28–31 OCT 2026 · #FrameInGoa · 2:47 PM STUDIO', W / 2, H - 30);
+    // Draw QR code inside white box
+    drawCanvasQR(ctx, qrX + 2 * scaleX, qrY + 2 * scaleY, qrSize - 4 * scaleX, `${name}_${stack}_${builderClass}`);
   }
 
   // ── Team Frame Renderer ───────────────────────────────────────
@@ -1057,19 +1018,41 @@
   }
 
   // ── Share to X ────────────────────────────────────────────────
-  function shareToX() {
+  async function shareToX() {
     const name = els.nameInput.value.trim() || 'Builder';
     const caption = state.teamSize > 1
-      ? `We just forged our HH Goa 2026 Team Builder Pass! 🌴🚀 #FrameInGoa @247pmstudio`
-      : `Just forged my HH Goa 2026 Builder Pass! 🌴🚀 #FrameInGoa @247pmstudio`;
+      ? `We just forged our HH Goa 2026 Team Builder Pass! 🌴🚀 #FrameInGoa @247pmstudio @hhgoa`
+      : `Just forged my HH Goa 2026 Builder Pass! 🌴🚀 #FrameInGoa @247pmstudio @hhgoa`;
+
+    const fileName = `HH-Goa-2026-${name.replace(/\s+/g, '-')}.png`;
+    const dataUrl = els.resultCanvas.toDataURL('image/png');
 
     const link = document.createElement('a');
-    link.download = `HH-Goa-2026-${name.replace(/\s+/g, '-')}.png`;
-    link.href = els.resultCanvas.toDataURL('image/png');
+    link.download = fileName;
+    link.href = dataUrl;
     link.click();
 
+    if (navigator.share && navigator.canShare) {
+      try {
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const file = new File([blob], fileName, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'Hacker House Goa 2026 Pass',
+            text: caption,
+            files: [file]
+          });
+          showToast('Shared successfully! 🚀', 'success');
+          return;
+        }
+      } catch (err) {
+        console.log('Web share fallback to Twitter intent:', err);
+      }
+    }
+
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}`, '_blank');
-    showToast('Image downloaded! Paste it into your X post. 🐦', 'success');
+    showToast('Image saved! Twitter opened to share your pass 🐦', 'success');
   }
 
   // ── Toast ─────────────────────────────────────────────────────
@@ -1172,40 +1155,12 @@
     sampleCanvas.toBlob((blob) => {
       const file = new File([blob], 'sample.png', { type: 'image/png' });
       handlePhotoUpload(file, 0);
-    }, 'image/png');
-  }
-
-  // ── Crop Controls Init ────────────────────────────────────────
-  function initCropControls() {
-    const mask = document.querySelector('.crop-mask');
-    if (!mask || !els.zoomSlider) return;
-
-    els.zoomSlider.addEventListener('input', (e) => {
-      const oldScale = cropState.scale;
-      cropState.scale = parseFloat(e.target.value);
       
-      const maskSize = 240;
-      cropState.dx = maskSize/2 - (maskSize/2 - cropState.dx) * (cropState.scale / oldScale);
-      cropState.dy = maskSize/2 - (maskSize/2 - cropState.dy) * (cropState.scale / oldScale);
+      if (!els.nameInput.value) els.nameInput.value = 'Alex Rivera';
+      if (!els.stackInput.value) els.stackInput.value = 'Fullstack Engineer';
       
-      updateCropTransform();
-    });
-    
-    mask.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      const zoomStep = 0.05;
-      const newScale = e.deltaY < 0 ? cropState.scale + zoomStep : cropState.scale - zoomStep;
-      if (newScale >= parseFloat(els.zoomSlider.min) && newScale <= parseFloat(els.zoomSlider.max)) {
-        els.zoomSlider.value = newScale;
-        els.zoomSlider.dispatchEvent(new Event('input'));
-      }
-    }, { passive: false });
-
-    const startDrag = (x, y) => {
-      cropState.isDragging = true;
-      cropState.startX = x - cropState.dx;
-      cropState.startY = y - cropState.dy;
-    };
+      showToast('Sample data & photo loaded!', 'success');
+    }, 'image/png');    };
     
     const moveDrag = (x, y) => {
       if (!cropState.isDragging) return;
