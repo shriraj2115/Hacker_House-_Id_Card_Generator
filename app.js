@@ -1360,21 +1360,21 @@
     setupRadioToggle(els.modeToggle, setMode);
 
     // ── Photo uploads ──
-    els.photoInput1.addEventListener('change', (e) => handlePhotoUpload(e.target.files[0], 0));
+    if (els.photoInput1) els.photoInput1.addEventListener('change', (e) => handlePhotoUpload(e.target.files[0], 0));
 
-    $('btnCamera').addEventListener('click', () => els.cameraInput.click());
-    els.cameraInput.addEventListener('change', (e) => handlePhotoUpload(e.target.files[0], 0));
-    $('btnSample').addEventListener('click', loadSamplePhoto);
+    if ($('btnCamera')) $('btnCamera').addEventListener('click', () => els.cameraInput.click());
+    if (els.cameraInput) els.cameraInput.addEventListener('change', (e) => handlePhotoUpload(e.target.files[0], 0));
+    if ($('btnSample')) $('btnSample').addEventListener('click', loadSamplePhoto);
 
     // ── Validation ──
     setupValidation();
 
     // ── Generate ──
-    $('btnGenerate').addEventListener('click', generateCard);
+    if ($('btnGenerate')) $('btnGenerate').addEventListener('click', generateCard);
 
     // ── Result actions ──
-    $('btnDownload').addEventListener('click', downloadPNG);
-    $('btnShareX').addEventListener('click', shareToX);
+    if ($('btnDownload')) $('btnDownload').addEventListener('click', downloadPNG);
+    if ($('btnShareX')) $('btnShareX').addEventListener('click', shareToX);
 
     // ── Drag & drop ──
     setupDragDrop();
