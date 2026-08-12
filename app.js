@@ -1060,8 +1060,23 @@
     initNavbarMorph();
 
     // ── Card screen navigation ──
-    $('btnStartGenerator').addEventListener('click', () => showCardScreen('form'));
-    $('btnCancelForm').addEventListener('click', () => showCardScreen('landing'));
+    const heroSection = $('screenHero');
+    const generatorSection = $('generatorSection');
+
+    $('btnStartGenerator').addEventListener('click', () => {
+      heroSection.style.display = 'none';
+      generatorSection.style.display = 'flex';
+      showCardScreen('form');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    $('btnCancelForm').addEventListener('click', () => {
+      generatorSection.style.display = 'none';
+      heroSection.style.display = 'flex';
+      showCardScreen('form');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
     $('btnNewCard').addEventListener('click', () => {
       els.nameInput.value = '';
       els.stackInput.value = '';
@@ -1075,14 +1090,17 @@
     // Team TOK DOI toggle
     const navBtnTeam = $('navBtnTeam');
     $('btnCloseAbout').addEventListener('click', () => {
-      showCardScreen('landing');
-      navBtnTeam.innerText = 'TEAM TOK DOI';
+      showCardScreen('form');
+      navBtnTeam.innerText = 'TEAM VIRUS.EXE';
     });
 
     navBtnTeam.addEventListener('click', () => {
+      // Make sure generator section is visible
+      heroSection.style.display = 'none';
+      generatorSection.style.display = 'flex';
       if (cardScreens.about.classList.contains('active')) {
-        showCardScreen('landing');
-        navBtnTeam.innerText = 'TEAM TOK DOI';
+        showCardScreen('form');
+        navBtnTeam.innerText = 'TEAM VIRUS.EXE';
       } else {
         showCardScreen('about');
         navBtnTeam.innerText = 'RETURN HOME';
@@ -1119,8 +1137,12 @@
     checkURLParams();
 
     // ── Initial screen ──
-    if (!window.location.search.includes('name=')) {
-      showCardScreen('landing');
+    if (window.location.search.includes('name=')) {
+      heroSection.style.display = 'none';
+      generatorSection.style.display = 'flex';
+    } else {
+      heroSection.style.display = 'flex';
+      generatorSection.style.display = 'none';
     }
   }
 

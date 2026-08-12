@@ -43,12 +43,6 @@ html {
 
 body {
   background-color: var(--bg-base);
-  background-image:
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.55)),
-    url('bg.png');
-  background-size: cover;
-  background-position: center center;
-  background-attachment: fixed;
   color: var(--text-main);
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   min-height: 100vh;
@@ -205,77 +199,38 @@ a { color: inherit; text-decoration: none; }
 .nav-btn-yellow:active { transform: scale(0.95); }
 
 /* ═══════════════════════════════════════════════════════════════
-   LANDING — Split Layout (site2 style)
+   HERO LANDING — Full-screen with footer-trees background
    ═══════════════════════════════════════════════════════════════ */
-.landing {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+.hero-landing {
   min-height: 100vh;
-  padding-top: 70px;
-  background-image: url('https://hhgoa.com/assets/footer%20trees.png');
-  background-size: cover;
-  background-position: center bottom;
-  background-repeat: no-repeat;
-}
-
-.landing-layout {
-  flex: 1;
   display: flex;
-  flex-direction: column;
-  padding: 20px 24px 30px;
-  gap: 30px;
-  max-width: 1500px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-@media (min-width: 1000px) {
-  .landing-layout {
-    flex-direction: row;
-    align-items: center;
-    padding: 0 60px 40px;
-  }
-  .branding-side { flex: 1.3; padding-right: 40px; }
-  .app-side { flex: 0.7; max-width: 500px; }
-}
-
-/* ── Branding Side (Left) ──────────────────────────────────────── */
-.branding-side {
-  display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  text-align: center;
-  width: 100%;
   position: relative;
+  background-image: url('footer-trees.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-color: #1a6b3c;
+  padding: 80px 24px 40px;
 }
 
-.brand-top-row {
-  width: 100%;
+.hero-content {
   display: flex;
-  justify-content: flex-start;
-}
-
-.brand-studio {
-  font-family: 'JetBrains Mono', monospace;
-  color: var(--hh-yellow);
-  font-weight: 900;
-  font-size: 1.6rem;
-  line-height: 0.85;
-  text-shadow: 0 0 18px rgba(255, 222, 0, 0.25);
-}
-
-.brand-studio span {
-  font-size: 0.85rem;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  z-index: 2;
 }
 
 .brand-center {
   position: relative;
   display: inline-block;
-  margin: 30px 0 50px;
+  margin: 0 0 20px;
 }
 
-/* The vertically stretched "Instrument Serif" title — from site2 */
+/* The vertically stretched "Instrument Serif" title */
 .brand-title {
   font-family: 'Instrument Serif', serif;
   font-size: clamp(4.5rem, 11vw, 11rem);
@@ -287,7 +242,7 @@ a { color: inherit; text-decoration: none; }
   text-shadow: 0 4px 30px rgba(255, 222, 0, 0.15);
 }
 
-/* गोवा overlay — from site2/hhgoa.com */
+/* गोवा overlay */
 .goa-overlay {
   position: absolute;
   top: 55%; left: 50%;
@@ -302,24 +257,66 @@ a { color: inherit; text-decoration: none; }
   pointer-events: none;
 }
 
-.brand-bottom-row {
-  width: 100%;
+/* Brand info row below title */
+.brand-info {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   font-family: 'JetBrains Mono', monospace;
   color: var(--hh-yellow);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  margin-bottom: 24px;
 }
 
-@media (max-width: 899px) {
-  .brand-bottom-row {
-    flex-direction: column;
-    gap: 8px;
-    align-items: center;
-  }
+/* Generate ID button — yellow with red dashed border */
+.btn-generate-id {
+  background: var(--hh-yellow);
+  border: 3px dashed var(--hh-pink-rose);
+  color: #000;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 16px 48px;
+  cursor: pointer;
+  box-shadow: 0 0 30px rgba(255, 222, 0, 0.4);
+  transition: all 250ms var(--ease-out);
+  position: relative;
+}
+
+.btn-generate-id:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 8px 40px rgba(255, 222, 0, 0.5);
+}
+
+.btn-generate-id:active {
+  transform: scale(0.97);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GENERATOR SECTION — The ID card form
+   ═══════════════════════════════════════════════════════════════ */
+.generator-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 100px 24px 60px;
+  background-image: url('footer-trees.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-color: #1a6b3c;
+}
+
+.generator-wrapper {
+  width: 100%;
+  max-width: 520px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -883,13 +880,16 @@ a { color: inherit; text-decoration: none; }
   .app-card { padding: 20px; }
   .brand-title { font-size: 4rem; }
   .goa-overlay { font-size: 2.5rem; }
-  .brand-bottom-row { font-size: 0.7rem; }
+  .brand-info { font-size: 0.7rem; }
+  .btn-generate-id { font-size: 0.9rem; padding: 14px 36px; }
+  .hero-landing { padding: 60px 16px 30px; }
+  .generator-section { padding: 80px 16px 40px; }
 }
 
 @media (max-width: 480px) {
   .brand-title { font-size: 3.2rem; }
   .goa-overlay { font-size: 2rem; }
-  .landing-layout { padding: 12px 14px 20px; }
+  .btn-generate-id { font-size: 0.8rem; padding: 12px 28px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
