@@ -428,7 +428,17 @@
 
   // ── Photo Handling ────────────────────────────────────────────
   function updateCropTransform() {
-    els.uploadThumb1.style.transform = `translate(${cropState.dx}px, ${cropState.dy}px) scale(${cropState.scale})`;
+    const thumb = els.uploadThumb1;
+    if (!thumb) return;
+    const maskSize = 240;
+    const fitW = cropState.imageWidth && cropState.fitScale ? cropState.imageWidth * cropState.fitScale : maskSize;
+    const fitH = cropState.imageHeight && cropState.fitScale ? cropState.imageHeight * cropState.fitScale : maskSize;
+    const effScale = cropState.scale || 1;
+
+    thumb.style.width = `${fitW}px`;
+    thumb.style.height = `${fitH}px`;
+    thumb.style.transform = `translate3d(${cropState.dx}px, ${cropState.dy}px, 0) scale(${effScale})`;
+    thumb.style.transformOrigin = '0 0';
   }
 
   async function handlePhotoUpload(file, index) {
