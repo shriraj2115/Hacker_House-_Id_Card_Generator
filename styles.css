@@ -302,6 +302,17 @@ a { color: inherit; text-decoration: none; }
   pointer-events: none;
 }
 
+.heading-sticker {
+  position: absolute;
+  top: -20px;
+  right: -50px;
+  width: 120px;
+  transform: rotate(15deg);
+  z-index: 20;
+  filter: drop-shadow(3px 5px 8px rgba(0, 0, 0, 0.4));
+  pointer-events: none;
+}
+
 .brand-bottom-row {
   width: 100%;
   display: flex;
