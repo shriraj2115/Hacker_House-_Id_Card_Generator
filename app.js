@@ -1177,40 +1177,10 @@
 
   // ── Share to X ────────────────────────────────────────────────
   async function shareToX() {
-    const name = els.nameInput.value.trim() || 'Builder';
-    const stack = els.stackInput.value.trim() || 'Developer';
-    const shareUrl = `${window.location.origin}${window.location.pathname}?name=${encodeURIComponent(name)}&stack=${encodeURIComponent(stack)}`;
-    const caption = `Goa is calling! Locked in for Hacker House Goa 2026⚡\n\nExcited to build, collaborate, and ship alongside an incredible dev community under the sun! 🌴\n\nGet your Builder Card: ${shareUrl}\n\n#FrameInGoa #HHGoa #BuildInPublic #Hackathon`;
-
-    const fileName = `HH-Goa-2026-${name.replace(/\s+/g, '-')}.png`;
-    const dataUrl = els.resultCanvas.toDataURL('image/png');
-
-    const link = document.createElement('a');
-    link.download = fileName;
-    link.href = dataUrl;
-    link.click();
-
-    if (navigator.share && navigator.canShare) {
-      try {
-        const response = await fetch(dataUrl);
-        const blob = await response.blob();
-        const file = new File([blob], fileName, { type: 'image/png' });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: 'Hacker House Goa 2026 Pass',
-            text: caption,
-            files: [file]
-          });
-          showToast('Shared successfully! 🚀', 'success');
-          return;
-        }
-      } catch (err) {
-        console.log('Web share fallback to Twitter intent:', err);
-      }
-    }
+    const caption = `Goa is calling! Locked in for Hacker House Goa 2026⚡\n\nExcited to build, collaborate, and ship alongside an incredible dev community under the sun! 🌴\n\nGet your Builder Card: \n\n#FrameInGoa #HHGoa #BuildInPublic #Hackathon`;
 
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}`, '_blank');
-    showToast('Image saved! Twitter opened to share your pass 🐦', 'success');
+    showToast('Twitter opened! Attach your downloaded pass 🐦', 'success');
   }
 
   // ── Toast ─────────────────────────────────────────────────────
