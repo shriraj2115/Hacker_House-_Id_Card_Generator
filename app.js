@@ -924,14 +924,14 @@
     const scaleX = W / 571;
     const scaleY = H / 1024;
 
-    // Fill the background with dark green so transparent corners don't show up as white when downloaded/shared
+    // Fill the background with dark green to replace the white corners
     ctx.fillStyle = '#063725';
     ctx.fillRect(0, 0, W, H);
 
-    // Save and clip entire canvas to template rounded corners (84px border radius on 571x1024 scale to remove white artifacts)
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(0, 0, W, H, 84 * scaleX);
+    const cornerRadius = 84 * scaleX;
+    ctx.roundRect(0, 0, W, H, cornerRadius);
     ctx.clip();
 
     if (cardTemplateImg && cardTemplateImg.complete && cardTemplateImg.naturalWidth > 0) {
@@ -940,6 +940,15 @@
       ctx.fillStyle = '#063725';
       ctx.fillRect(0, 0, W, H);
     }
+    
+    ctx.restore();
+
+    // Draw a thick dark green stroke over the rounded edge to completely cover any white anti-aliasing fringe
+    ctx.lineWidth = 6 * scaleX;
+    ctx.strokeStyle = '#063725';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, H, cornerRadius);
+    ctx.stroke();
 
     // 2. User Photo inside Circle Frame (center: 285.5, 448, radius: 136)
     const cx = 285.5 * scaleX;
