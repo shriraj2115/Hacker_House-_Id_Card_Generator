@@ -491,7 +491,7 @@
         cropState.isDragging = false;
 
         if (els.zoomSlider) {
-          els.zoomSlider.min = 1.0;
+          els.zoomSlider.min = 0.1;
           els.zoomSlider.max = 3.0;
           els.zoomSlider.step = 0.01;
           els.zoomSlider.value = 1.0;
@@ -818,6 +818,14 @@
   const cardTemplateImg = new Image();
   cardTemplateImg.src = 'card_template.png';
 
+  // Preload Badges
+  const badge1Img = new Image();
+  badge1Img.src = 'badge1.png';
+  const badge2Img = new Image();
+  badge2Img.src = 'badge2.png';
+  const badge3Img = new Image();
+  badge3Img.src = 'badge3.png';
+
   function ensureImageLoaded(img, src) {
     return new Promise((resolve) => {
       if (img && img.complete && img.naturalWidth > 0) return resolve(true);
@@ -900,13 +908,25 @@
 
   // ── Builder ID Renderer using Official Template Image ────────────
   async function renderBuilderID(ctx, W, H, name, stack, builderClass, handle) {
-    // 1. Ensure template image and photo images are fully loaded before rendering
+    // 1. Ensure template image, photo images, and badge images are fully loaded before rendering
     await ensureImageLoaded(cardTemplateImg, 'card_template.png');
+    await ensureImageLoaded(badge1Img, 'badge1.png');
+    await ensureImageLoaded(badge2Img, 'badge2.png');
+    await ensureImageLoaded(badge3Img, 'badge3.png');
     for (let i = 0; i < state.teamSize; i++) {
       if (state.photoImages[i]) {
         await ensureImageLoaded(state.photoImages[i]);
       }
     }
+
+    const scaleX = W / 571;
+    const scaleY = H / 1024;
+
+    // Save and clip entire canvas to template rounded corners (48px border radius on 571x1024 scale)
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, H, 48 * scaleX);
+    ctx.clip();
 
     if (cardTemplateImg && cardTemplateImg.complete && cardTemplateImg.naturalWidth > 0) {
       ctx.drawImage(cardTemplateImg, 0, 0, W, H);
@@ -915,13 +935,10 @@
       ctx.fillRect(0, 0, W, H);
     }
 
-    const scaleX = W / 571;
-    const scaleY = H / 1024;
-
-    // 2. User Photo inside Circle Frame (center: 122.5, 409.5, radius: 86)
-    const cx = 122.5 * scaleX;
-    const cy = 409.5 * scaleY;
-    const r = 86 * scaleX;
+    // 2. User Photo inside Circle Frame (center: 285.5, 448, radius: 136)
+    const cx = 285.5 * scaleX;
+    const cy = 448 * scaleY;
+    const r = 136 * scaleX;
 
     ctx.save();
     ctx.beginPath();
@@ -935,59 +952,68 @@
     }
     ctx.restore();
 
-    // Dark Green Border around Circle
-    ctx.strokeStyle = '#063725';
-    ctx.lineWidth = 5 * scaleX;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // 3. Name Pill Box (x: 210..510, y: 345..405, exact center_y: 375)
-    const nameX = 218 * scaleX;
-    const nameY = 375 * scaleY;
-    const maxTextW = 280 * scaleX;
-
-    drawFittedText(ctx, name.toUpperCase(), nameX, nameY, maxTextW, `800 ${Math.floor(22 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
-
-    // 4. Primary Stack Pill Box (x: 210..510, y: 418..492, exact center_y: 455)
-    if (handle) {
-      const stackY = 442 * scaleY;
-      drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `700 ${Math.floor(15 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
-      
-      const handleY = 468 * scaleY;
-      const formattedHandle = handle.startsWith('@') ? handle : '@' + handle;
-      drawFittedText(ctx, formattedHandle, nameX, handleY, maxTextW, `700 ${Math.floor(13 * scaleX)}px "JetBrains Mono", sans-serif`, '#e11d48', 'left');
-    } else {
-      const stackY = 455 * scaleY;
-      drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `700 ${Math.floor(17 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
-    }
+    // 2.5. Draw starburst sticker background from template on top of PFP to overlap it
+    const bx = 412 * scaleX;
+    const by = 324 * scaleY;
     
-    // LET'S BUILD sticker
     ctx.save();
-    ctx.translate(880, 560);
-    ctx.rotate(15 * Math.PI / 180);
-    ctx.fillStyle = BRAND.yellow;
-    ctx.fillRect(-80, -30, 160, 60);
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
-    ctx.strokeRect(-80, -30, 160, 60);
-    ctx.fillStyle = '#000';
-    ctx.font = '900 20px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText("LET'S BUILD!", 0, 0);
+    // Clip to circular region of starburst (radius ~42) to overlay the badge shape cleanly
+    ctx.beginPath();
+    ctx.arc(bx, by, 42 * scaleX, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(
+      cardTemplateImg,
+      337, 249, 150, 150,
+      337 * scaleX, 249 * scaleY, 150 * scaleX, 150 * scaleY
+    );
     ctx.restore();
 
-    // 5. QR Code Placeholder Box (x: 244, y: 798, w: 83, h: 83)
-    const qrX = 244 * scaleX;
-    const qrY = 798 * scaleY;
-    const qrSize = 83 * scaleX;
+    // 2.6. Draw the random badge image inside the starburst (perfectly centered, radius ~35)
+    const badgeIndex = (name.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0)) % 3;
+    const badgeImg = [badge1Img, badge2Img, badge3Img][badgeIndex];
+    if (badgeImg && badgeImg.complete && badgeImg.naturalWidth > 0) {
+      const br = 35 * scaleX;
 
-    // Fill white box overlay
-    ctx.fillStyle = '#FAF7F0';
-    ctx.fillRect(qrX, qrY, qrSize, qrSize);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(badgeImg, bx - br, by - br, br * 2, br * 2);
+      ctx.restore();
+    }
 
-    // Draw QR code inside white box
-    drawCanvasQR(ctx, qrX + 2 * scaleX, qrY + 2 * scaleY, qrSize - 4 * scaleX, `${name}_${stack}_${builderClass}`);
+    // 3. Name inside Green Pill Box (center: 285.5, 849, max width: 380)
+    const nameX = W / 2;
+    const nameY = 849 * scaleY;
+    const maxNameW = 380 * scaleX;
+    drawFittedText(
+      ctx,
+      name.toUpperCase(),
+      nameX,
+      nameY,
+      maxNameW,
+      `800 ${Math.floor(25 * scaleX)}px "Plus Jakarta Sans", sans-serif`,
+      BRAND.cream,
+      'center'
+    );
+
+    // 4. Primary Stack inside Yellow Pill Box (center: 285.5, 927, max width: 190)
+    const stackX = W / 2;
+    const stackY = 927 * scaleY;
+    const maxStackW = 190 * scaleX;
+    drawFittedText(
+      ctx,
+      stack.toUpperCase(),
+      stackX,
+      stackY,
+      maxStackW,
+      `800 ${Math.floor(18 * scaleX)}px "JetBrains Mono", sans-serif`,
+      BRAND.greenDeep,
+      'center'
+    );
+
+    // Restore global rounded corners clip
+    ctx.restore();
   }
 
   // ── Team Frame Renderer ───────────────────────────────────────
@@ -1166,9 +1192,9 @@
   // ── Share to X ────────────────────────────────────────────────
   async function shareToX() {
     const name = els.nameInput.value.trim() || 'Builder';
-    const caption = state.teamSize > 1
-      ? `We just forged our HH Goa 2026 Team Builder Pass! 🌴🚀 #FrameInGoa @247pmstudio @hhgoa`
-      : `Just forged my HH Goa 2026 Builder Pass! 🌴🚀 #FrameInGoa @247pmstudio @hhgoa`;
+    const stack = els.stackInput.value.trim() || 'Developer';
+    const shareUrl = `${window.location.origin}${window.location.pathname}?name=${encodeURIComponent(name)}&stack=${encodeURIComponent(stack)}`;
+    const caption = `Goa is calling! Locked in for Hacker House Goa 2026⚡\n\nExcited to build, collaborate, and ship alongside an incredible dev community under the sun! 🌴\n\nGet your Builder Card: ${shareUrl}\n\n#FrameInGoa #HHGoa #BuildInPublic #Hackathon`;
 
     const fileName = `HH-Goa-2026-${name.replace(/\s+/g, '-')}.png`;
     const dataUrl = els.resultCanvas.toDataURL('image/png');

@@ -804,10 +804,8 @@ a { color: inherit; text-decoration: none; }
 
 /* ── Canvas Wrapper & Result ───────────────────────────────────── */
 .canvas-wrapper {
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  overflow: hidden;
-  background: #fff;
+  border: none;
+  background: transparent;
   max-width: 400px;
   margin: 0 auto;
 }
