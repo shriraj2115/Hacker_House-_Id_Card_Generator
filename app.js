@@ -973,12 +973,13 @@
     const badgeImg = [badge1Img, badge2Img, badge3Img][badgeIndex];
     if (badgeImg && badgeImg.complete && badgeImg.naturalWidth > 0) {
       const br = 35 * scaleX;
+      const bIconY = by + 2 * scaleY; // Move down 2 template pixels for perfect optical centering
 
       ctx.save();
       ctx.beginPath();
-      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.arc(bx, bIconY, br, 0, Math.PI * 2);
       ctx.clip();
-      ctx.drawImage(badgeImg, bx - br, by - br, br * 2, br * 2);
+      ctx.drawImage(badgeImg, bx - br, bIconY - br, br * 2, br * 2);
       ctx.restore();
     }
 
