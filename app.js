@@ -924,10 +924,10 @@
     const scaleX = W / 571;
     const scaleY = H / 1024;
 
-    // Save and clip entire canvas to template rounded corners (48px border radius on 571x1024 scale)
+    // Save and clip entire canvas to template rounded corners (76px border radius on 571x1024 scale to remove white artifacts)
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(0, 0, W, H, 48 * scaleX);
+    ctx.roundRect(0, 0, W, H, 76 * scaleX);
     ctx.clip();
 
     if (cardTemplateImg && cardTemplateImg.complete && cardTemplateImg.naturalWidth > 0) {
@@ -954,34 +954,17 @@
     }
     ctx.restore();
 
-    // 2.5. Draw starburst sticker background from template on top of PFP to overlap it
-    const bx = 412 * scaleX;
-    const by = 324 * scaleY;
-    
-    ctx.save();
-    // Clip to circular region of starburst (radius ~42) to overlay the badge shape cleanly
-    ctx.beginPath();
-    ctx.arc(bx, by, 42 * scaleX, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.drawImage(
-      cardTemplateImg,
-      337, 249, 150, 150,
-      337 * scaleX, 249 * scaleY, 150 * scaleX, 150 * scaleY
-    );
-    ctx.restore();
-
-    // 2.6. Draw the random badge image inside the starburst (perfectly centered, radius ~35)
+    // 2.6. Draw the random badge image inside the starburst (perfectly centered)
     const badgeIndex = (name.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0)) % 3;
     const badgeImg = [badge1Img, badge2Img, badge3Img][badgeIndex];
     if (badgeImg && badgeImg.complete && badgeImg.naturalWidth > 0) {
       const br = 35 * scaleX;
-      const bIconY = by + 2 * scaleY; // Move down 2 template pixels for perfect optical centering
+      // Shift down and left (south-west) to center within the visible portion of the starburst
+      const badgeX = 413 * scaleX;
+      const badgeY = 337 * scaleY;
 
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(bx, bIconY, br, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.drawImage(badgeImg, bx - br, bIconY - br, br * 2, br * 2);
+      ctx.drawImage(badgeImg, badgeX - br, badgeY - br, br * 2, br * 2);
       ctx.restore();
     }
 
