@@ -430,7 +430,17 @@
 
   // ── Photo Handling ────────────────────────────────────────────
   function updateCropTransform() {
-    els.uploadThumb1.style.transform = `translate(${cropState.dx}px, ${cropState.dy}px) scale(${cropState.scale})`;
+    const thumb = els.uploadThumb1;
+    if (!thumb) return;
+    const maskSize = 240;
+    const fitW = cropState.imageWidth && cropState.fitScale ? cropState.imageWidth * cropState.fitScale : maskSize;
+    const fitH = cropState.imageHeight && cropState.fitScale ? cropState.imageHeight * cropState.fitScale : maskSize;
+    const effScale = cropState.scale || 1;
+
+    thumb.style.width = `${fitW}px`;
+    thumb.style.height = `${fitH}px`;
+    thumb.style.transform = `translate3d(${cropState.dx}px, ${cropState.dy}px, 0) scale(${effScale})`;
+    thumb.style.transformOrigin = '0 0';
   }
 
   async function handlePhotoUpload(file, index) {
@@ -469,22 +479,24 @@
         zone.classList.add('has-photo');
         if (text) text.textContent = 'DATA ATTACHED';
         
-        // Reset crop state cleanly
+        // Reset crop state cleanly to auto-cover circle 100% centered
         const maskSize = 240;
+        cropState.imageWidth = img.width;
+        cropState.imageHeight = img.height;
         cropState.fitScale = Math.max(maskSize / img.width, maskSize / img.height);
-        cropState.scale = 1;
+        cropState.scale = 1.0;
         
-        const dispW = img.width * cropState.fitScale;
-        const dispH = img.height * cropState.fitScale;
-        cropState.dx = (maskSize - dispW) / 2;
-        cropState.dy = (maskSize - dispH) / 2;
+        const baseW = img.width * cropState.fitScale;
+        const baseH = img.height * cropState.fitScale;
+        cropState.dx = (maskSize - baseW) / 2;
+        cropState.dy = (maskSize - baseH) / 2;
         cropState.isDragging = false;
 
         if (els.zoomSlider) {
-          els.zoomSlider.min = 0.5;
-          els.zoomSlider.max = 4;
+          els.zoomSlider.min = 0.1;
+          els.zoomSlider.max = 3.0;
           els.zoomSlider.step = 0.01;
-          els.zoomSlider.value = 1;
+          els.zoomSlider.value = 1.0;
         }
 
         updateCropTransform();
@@ -808,6 +820,14 @@
   const cardTemplateImg = new Image();
   cardTemplateImg.src = 'card_template.png';
 
+  // Preload Badges
+  const badge1Img = new Image();
+  badge1Img.src = 'badge1.png';
+  const badge2Img = new Image();
+  badge2Img.src = 'badge2.png';
+  const badge3Img = new Image();
+  badge3Img.src = 'badge3.png';
+
   function ensureImageLoaded(img, src) {
     return new Promise((resolve) => {
       if (img && img.complete && img.naturalWidth > 0) return resolve(true);
@@ -820,10 +840,20 @@
 
   function drawCirclePhoto(ctx, img, cx, cy, r) {
     if (img && img.complete && img.naturalWidth > 0) {
-      const ir = img.width / img.height;
-      let sx, sy, sw, sh;
-      if (ir > 1) { sh = img.height; sw = sh; sx = (img.width - sw) / 2; sy = 0; }
-      else { sw = img.width; sh = sw; sx = 0; sy = (img.height - sh) / 2; }
+      const maskSize = 240;
+      const fitScale = cropState.fitScale || Math.max(maskSize / img.width, maskSize / img.height);
+      const effScale = Math.max(0.1, (cropState.scale || 1) * fitScale);
+
+      let sw = maskSize / effScale;
+      let sh = maskSize / effScale;
+      let sx = -(cropState.dx || 0) / effScale;
+      let sy = -(cropState.dy || 0) / effScale;
+
+      sw = Math.min(img.width, Math.max(1, sw));
+      sh = Math.min(img.height, Math.max(1, sh));
+      sx = Math.max(0, Math.min(img.width - sw, sx));
+      sy = Math.max(0, Math.min(img.height - sh, sy));
+
       ctx.drawImage(img, sx, sy, sw, sh, cx - r, cy - r, r * 2, r * 2);
     } else {
       ctx.fillStyle = '#063725';
@@ -880,13 +910,25 @@
 
   // ── Builder ID Renderer using Official Template Image ────────────
   async function renderBuilderID(ctx, W, H, name, stack, builderClass, handle) {
-    // 1. Ensure template image and photo images are fully loaded before rendering
+    // 1. Ensure template image, photo images, and badge images are fully loaded before rendering
     await ensureImageLoaded(cardTemplateImg, 'card_template.png');
+    await ensureImageLoaded(badge1Img, 'badge1.png');
+    await ensureImageLoaded(badge2Img, 'badge2.png');
+    await ensureImageLoaded(badge3Img, 'badge3.png');
     for (let i = 0; i < state.teamSize; i++) {
       if (state.photoImages[i]) {
         await ensureImageLoaded(state.photoImages[i]);
       }
     }
+
+    const scaleX = W / 571;
+    const scaleY = H / 1024;
+
+    // Save and clip entire canvas to template rounded corners (48px border radius on 571x1024 scale)
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, H, 48 * scaleX);
+    ctx.clip();
 
     if (cardTemplateImg && cardTemplateImg.complete && cardTemplateImg.naturalWidth > 0) {
       ctx.drawImage(cardTemplateImg, 0, 0, W, H);
@@ -895,13 +937,10 @@
       ctx.fillRect(0, 0, W, H);
     }
 
-    const scaleX = W / 571;
-    const scaleY = H / 1024;
-
-    // 2. User Photo inside Circle Frame (center: 122.5, 409.5, radius: 86)
-    const cx = 122.5 * scaleX;
-    const cy = 409.5 * scaleY;
-    const r = 86 * scaleX;
+    // 2. User Photo inside Circle Frame (center: 285.5, 448, radius: 136)
+    const cx = 285.5 * scaleX;
+    const cy = 448 * scaleY;
+    const r = 136 * scaleX;
 
     ctx.save();
     ctx.beginPath();
@@ -915,50 +954,69 @@
     }
     ctx.restore();
 
-    // Dark Green Border around Circle
-    ctx.strokeStyle = '#063725';
-    ctx.lineWidth = 5 * scaleX;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // 3. Name Pill Box (x: 210..510, y: 345..405, exact center_y: 375)
-    const nameX = 218 * scaleX;
-    const nameY = 375 * scaleY;
-    const maxTextW = 280 * scaleX;
-
-    drawFittedText(ctx, name.toUpperCase(), nameX, nameY, maxTextW, `800 ${Math.floor(22 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
-
-    // 4. Primary Stack Pill Box (x: 210..510, y: 418..492, exact center_y: 455)
-    const stackY = 455 * scaleY;
-    drawFittedText(ctx, stack.toUpperCase(), nameX, stackY, maxTextW, `700 ${Math.floor(17 * scaleX)}px "JetBrains Mono", sans-serif`, '#063725', 'left');
+    // 2.5. Draw starburst sticker background from template on top of PFP to overlap it
+    const bx = 412 * scaleX;
+    const by = 324 * scaleY;
     
-    // LET'S BUILD sticker
     ctx.save();
-    ctx.translate(880, 560);
-    ctx.rotate(15 * Math.PI / 180);
-    ctx.fillStyle = BRAND.yellow;
-    ctx.fillRect(-80, -30, 160, 60);
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
-    ctx.strokeRect(-80, -30, 160, 60);
-    ctx.fillStyle = '#000';
-    ctx.font = '900 20px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText("LET'S BUILD!", 0, 0);
+    // Clip to circular region of starburst (radius ~42) to overlay the badge shape cleanly
+    ctx.beginPath();
+    ctx.arc(bx, by, 42 * scaleX, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(
+      cardTemplateImg,
+      337, 249, 150, 150,
+      337 * scaleX, 249 * scaleY, 150 * scaleX, 150 * scaleY
+    );
     ctx.restore();
 
-    // 5. QR Code Placeholder Box (x: 244, y: 798, w: 83, h: 83)
-    const qrX = 244 * scaleX;
-    const qrY = 798 * scaleY;
-    const qrSize = 83 * scaleX;
+    // 2.6. Draw the random badge image inside the starburst (perfectly centered, radius ~35)
+    const badgeIndex = (name.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0)) % 3;
+    const badgeImg = [badge1Img, badge2Img, badge3Img][badgeIndex];
+    if (badgeImg && badgeImg.complete && badgeImg.naturalWidth > 0) {
+      const br = 35 * scaleX;
+      const bIconY = by + 2 * scaleY; // Move down 2 template pixels for perfect optical centering
 
-    // Fill white box overlay
-    ctx.fillStyle = '#FAF7F0';
-    ctx.fillRect(qrX, qrY, qrSize, qrSize);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(bx, bIconY, br, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(badgeImg, bx - br, bIconY - br, br * 2, br * 2);
+      ctx.restore();
+    }
 
-    // Draw QR code inside white box
-    drawCanvasQR(ctx, qrX + 2 * scaleX, qrY + 2 * scaleY, qrSize - 4 * scaleX, `${name}_${stack}_${builderClass}`);
+    // 3. Name inside Green Pill Box (center: 285.5, 849, max width: 380)
+    const nameX = W / 2;
+    const nameY = 849 * scaleY;
+    const maxNameW = 380 * scaleX;
+    drawFittedText(
+      ctx,
+      name.toUpperCase(),
+      nameX,
+      nameY,
+      maxNameW,
+      `800 ${Math.floor(25 * scaleX)}px "Plus Jakarta Sans", sans-serif`,
+      BRAND.cream,
+      'center'
+    );
+
+    // 4. Primary Stack inside Yellow Pill Box (center: 285.5, 927, max width: 190)
+    const stackX = W / 2;
+    const stackY = 927 * scaleY;
+    const maxStackW = 190 * scaleX;
+    drawFittedText(
+      ctx,
+      stack.toUpperCase(),
+      stackX,
+      stackY,
+      maxStackW,
+      `800 ${Math.floor(18 * scaleX)}px "JetBrains Mono", sans-serif`,
+      BRAND.greenDeep,
+      'center'
+    );
+
+    // Restore global rounded corners clip
+    ctx.restore();
   }
 
   // ── Team Frame Renderer ───────────────────────────────────────
@@ -1074,36 +1132,38 @@
     ctx.fillText('2:47 PM STUDIO', W / 2, H - 45);
   }
 
-  // ══════════════════════════════════════════════════════════════
-  //  GENERATE, DOWNLOAD, SHARE
-  // ══════════════════════════════════════════════════════════════
+  async function renderCard(ctx, canvas) {
+    const W = canvas.width;
+    const H = canvas.height;
+    const name = els.nameInput.value.trim() || 'Alex Rivera';
+    const stack = els.stackInput.value.trim() || 'Fullstack Engineer';
+    const handle = els.phoneInput ? els.phoneInput.value.trim() : '';
+
+    if (state.format === 'pfp') {
+      await renderPFP(ctx, W, H, name);
+    } else if (state.mode === 'team') {
+      await renderTeamFrame(ctx, W, H, name, stack, state.builderClass);
+    } else {
+      // Official Hacker House Goa Builder Pass Template
+      await renderBuilderID(ctx, W, H, name, stack, state.builderClass, handle);
+    }
+  }
 
   async function generateCard() {
-    const name = els.nameInput.value.trim();
-    const stack = els.stackInput.value.trim();
+    const name = els.nameInput.value.trim() || 'BUILDER';
+    const stack = els.stackInput.value.trim() || 'DEVELOPER';
 
-    if (!name || name.length < 2) {
-      showToast('Please enter your name (at least 2 characters).', 'error');
-      els.nameInput.focus();
-      return;
-    }
-
-    if (!stack || stack.length < 2) {
-      showToast('Please enter your stack or role.', 'error');
-      els.stackInput.focus();
-      return;
-    }
-
-    els.btnGenerateText.textContent = 'PROCESSING...';
+    els.btnGenerateText.textContent = 'FORGING PASS...';
 
     try {
+      els.previewCanvas.width = 571;
+      els.previewCanvas.height = 1024;
       await renderCard(previewCtx, els.previewCanvas);
 
-      els.resultCanvas.width = els.previewCanvas.width;
-      els.resultCanvas.height = els.previewCanvas.height;
+      els.resultCanvas.width = 1142;
+      els.resultCanvas.height = 2048;
       await renderCard(resultCtx, els.resultCanvas);
 
-      // Forge strike animation
       if (els.resultWrapper && !prefersReducedMotion) {
         els.resultWrapper.classList.remove('forge-strike', 'forge-glow');
         void els.resultWrapper.offsetWidth;
@@ -1112,10 +1172,11 @@
       }
 
       showCardScreen('result');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       showToast('Your builder pass has been forged! 🔥', 'success');
     } catch (err) {
       console.error('Render error:', err);
-      showToast('Something went wrong. Please try again.', 'error');
+      showToast('Render error: ' + (err.message || err), 'error');
     } finally {
       els.btnGenerateText.textContent = 'MINT PASS';
     }
@@ -1134,9 +1195,9 @@
   // ── Share to X ────────────────────────────────────────────────
   async function shareToX() {
     const name = els.nameInput.value.trim() || 'Builder';
-    const caption = state.teamSize > 1
-      ? `We just forged our HH Goa 2026 Team Builder Pass! 🌴🚀 #FrameInGoa @247pmstudio @hhgoa`
-      : `Just forged my HH Goa 2026 Builder Pass! 🌴🚀 #FrameInGoa @247pmstudio @hhgoa`;
+    const stack = els.stackInput.value.trim() || 'Developer';
+    const shareUrl = `${window.location.origin}${window.location.pathname}?name=${encodeURIComponent(name)}&stack=${encodeURIComponent(stack)}`;
+    const caption = `Goa is calling! Locked in for Hacker House Goa 2026⚡\n\nExcited to build, collaborate, and ship alongside an incredible dev community under the sun! 🌴\n\nGet your Builder Card: ${shareUrl}\n\n#FrameInGoa #HHGoa #BuildInPublic #Hackathon`;
 
     const fileName = `HH-Goa-2026-${name.replace(/\s+/g, '-')}.png`;
     const dataUrl = els.resultCanvas.toDataURL('image/png');
@@ -1382,21 +1443,21 @@
     setupRadioToggle(els.modeToggle, setMode);
 
     // ── Photo uploads ──
-    els.photoInput1.addEventListener('change', (e) => handlePhotoUpload(e.target.files[0], 0));
+    if (els.photoInput1) els.photoInput1.addEventListener('change', (e) => handlePhotoUpload(e.target.files[0], 0));
 
-    $('btnCamera').addEventListener('click', () => els.cameraInput.click());
-    els.cameraInput.addEventListener('change', (e) => handlePhotoUpload(e.target.files[0], 0));
-    $('btnSample').addEventListener('click', loadSamplePhoto);
+    if ($('btnCamera')) $('btnCamera').addEventListener('click', () => els.cameraInput.click());
+    if (els.cameraInput) els.cameraInput.addEventListener('change', (e) => handlePhotoUpload(e.target.files[0], 0));
+    if ($('btnSample')) $('btnSample').addEventListener('click', loadSamplePhoto);
 
     // ── Validation ──
     setupValidation();
 
     // ── Generate ──
-    $('btnGenerate').addEventListener('click', generateCard);
+    if ($('btnGenerate')) $('btnGenerate').addEventListener('click', generateCard);
 
     // ── Result actions ──
-    $('btnDownload').addEventListener('click', downloadPNG);
-    $('btnShareX').addEventListener('click', shareToX);
+    if ($('btnDownload')) $('btnDownload').addEventListener('click', downloadPNG);
+    if ($('btnShareX')) $('btnShareX').addEventListener('click', shareToX);
 
     // ── Drag & drop ──
     setupDragDrop();
