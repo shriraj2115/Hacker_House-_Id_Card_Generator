@@ -924,10 +924,14 @@
     const scaleX = W / 571;
     const scaleY = H / 1024;
 
-    // Save and clip entire canvas to template rounded corners (76px border radius on 571x1024 scale to remove white artifacts)
+    // Fill the background with dark green so transparent corners don't show up as white when downloaded/shared
+    ctx.fillStyle = '#063725';
+    ctx.fillRect(0, 0, W, H);
+
+    // Save and clip entire canvas to template rounded corners (84px border radius on 571x1024 scale to remove white artifacts)
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(0, 0, W, H, 76 * scaleX);
+    ctx.roundRect(0, 0, W, H, 84 * scaleX);
     ctx.clip();
 
     if (cardTemplateImg && cardTemplateImg.complete && cardTemplateImg.naturalWidth > 0) {
@@ -959,8 +963,8 @@
     const badgeImg = [badge1Img, badge2Img, badge3Img][badgeIndex];
     if (badgeImg && badgeImg.complete && badgeImg.naturalWidth > 0) {
       const br = 35 * scaleX;
-      // Shift down and left (south-west) to center within the visible portion of the starburst
-      const badgeX = 413 * scaleX;
+      // Shift slightly more left as requested
+      const badgeX = 410 * scaleX;
       const badgeY = 337 * scaleY;
 
       ctx.save();
