@@ -1042,9 +1042,14 @@ a { color: inherit; text-decoration: none; }
 }
 
 @media (max-width: 480px) {
-  .brand-title { font-size: 3.2rem; }
-  .goa-overlay { font-size: 2rem; }
+  .brand-title { font-size: 2.8rem; }
+  .goa-overlay { font-size: 1.8rem; }
   .btn-generate-id { font-size: 0.8rem; padding: 12px 28px; }
+  .app-card { padding: 16px; }
+  .actions-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
